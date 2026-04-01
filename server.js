@@ -3,7 +3,7 @@ const { chromium } = require('playwright');
 const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 
 let cachedData = null;
 let lastScrape = null;
@@ -24,7 +24,7 @@ app.get('/data', (req, res) => {
 });
 
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', lastScrape, hasCachedData: !!cachedData });
+  res.json({ status: 'ok', lastScrape, hasCachedData: !!cachedData, data: cachedData });
 });
 
 async function scrapeDashboard() {
@@ -39,35 +39,45 @@ async function scrapeDashboard() {
 
   try {
     const context = await browser.newContext({
-      userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
+      userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     });
     const page = await context.newPage();
 
+    console.log('Navigating to login page...');
     await page.goto('https://apps.alsoenergy.com/Account/Login', {
-      waitUntil: 'domcontentloaded',
+      waitUntil: 'networkidle',
       timeout: 60000
     });
 
-    await page.waitForSelector('input', { timeout: 30000 });
-    console.log('Login page loaded, filling credentials...');
+    // Auth0 loads the form dynamically - wait for the actual email input
+    console.log('Waiting for Auth0 email field...');
+    await page.waitForSelector(
+      'input[type="email"], input[name="email"], input[name="username"], input[id="email"], input[id="username"]',
+      { timeout: 30000 }
+    );
 
-    const userField = page.locator('input').first();
-    await userField.fill(process.env.POWERTRACK_USER || '');
+    console.log('Filling credentials...');
+    await page.fill(
+      'input[type="email"], input[name="email"], input[name="username"], input[id="email"], input[id="username"]',
+      process.env.POWERTRACK_USER || ''
+    );
 
-    const passField = page.locator('input[type="password"]').first();
-    await passField.fill(process.env.POWERTRACK_PASS || '');
+    await page.fill('input[type="password"]', process.env.POWERTRACK_PASS || '');
 
-    await page.locator('button[type="submit"], input[type="submit"]').first().click();
-    await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 30000 });
-    console.log('Logged in, navigating to dashboard...');
+    console.log('Submitting login...');
+    await page.click('button[type="submit"], input[type="submit"], button[name="action"]');
 
+    await page.waitForNavigation({ waitUntil: 'networkidle', timeout: 60000 });
+    console.log('Logged in! Current URL:', page.url());
+
+    console.log('Navigating to CLN dashboard...');
     await page.goto('https://apps.alsoenergy.com/powertrack/S72296/overview/dashboard', {
-      waitUntil: 'domcontentloaded',
+      waitUntil: 'networkidle',
       timeout: 60000
     });
 
-    await page.waitForTimeout(5000);
-    console.log('Dashboard loaded, scraping...');
+    await page.waitForTimeout(6000);
+    console.log('Dashboard loaded, scraping data...');
 
     const data = await page.evaluate(() => {
       const pageText = document.body.innerText;
@@ -76,17 +86,20 @@ async function scrapeDashboard() {
       const todayMatch = pageText.match(/Today\s+([\d,\.]+)\s*(kWh|MWh|GWh)/i);
       const yesterdayMatch = pageText.match(/Yesterday\s+([\d,\.]+)\s*(kWh|MWh|GWh)/i);
       const last30Match = pageText.match(/Last 30d?\s+([\d,\.]+)\s*(kWh|MWh|GWh)/i);
+      const pvSizeMatch = pageText.match(/([\d,\.]+)\s*kW\s*\(AC\)\s*\/\s*([\d,\.]+)\s*kW\s*\(DC\)/i);
       return {
         currentKW: pvProductionMatch ? pvProductionMatch[1] : null,
         capacityFactor: capacityFactorMatch ? capacityFactorMatch[1] : null,
         todayKWh: todayMatch ? { value: todayMatch[1], unit: todayMatch[2] } : null,
         yesterdayKWh: yesterdayMatch ? { value: yesterdayMatch[1], unit: yesterdayMatch[2] } : null,
         last30Days: last30Match ? { value: last30Match[1], unit: last30Match[2] } : null,
-        rawText: pageText.substring(0, 2000)
+        pvSizeAC: pvSizeMatch ? pvSizeMatch[1] : '4,975',
+        pvSizeDC: pvSizeMatch ? pvSizeMatch[2] : '6,499',
+        rawText: pageText.substring(0, 3000)
       };
     });
 
-    console.log('Scraped:', JSON.stringify(data));
+    console.log('Raw scraped data:', JSON.stringify(data, null, 2));
 
     let co2 = null;
     if (data.last30Days) {
@@ -103,6 +116,8 @@ async function scrapeDashboard() {
       todayKWh: data.todayKWh || { value: '—', unit: 'kWh' },
       yesterdayKWh: data.yesterdayKWh || { value: '—', unit: 'MWh' },
       last30Days: data.last30Days || { value: '—', unit: 'GWh' },
+      pvSizeAC: data.pvSizeAC || '4,975',
+      pvSizeDC: data.pvSizeDC || '6,499',
       co2OffsetTons30d: co2,
       scrapedAt: new Date().toISOString(),
       debug: data.rawText
@@ -113,6 +128,7 @@ async function scrapeDashboard() {
 
   } catch (err) {
     console.error('Scrape failed:', err.message);
+    console.error(err.stack);
   } finally {
     await browser.close();
     isScraping = false;
