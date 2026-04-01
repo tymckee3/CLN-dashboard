@@ -1,9 +1,9 @@
 {
   "status": "ok",
-  "currentKW": "531.4",
-  "capacityFactor": "11",
+  "currentKW": "491.9",
+  "capacityFactor": "10",
   "todayKWh": {
-    "value": "3.21",
+    "value": "4.20",
     "unit": "MWh"
   },
   "yesterdayKWh": {
@@ -27,12 +27,12 @@
   "co2OffsetTons30d": "457.8",
   "sunrise": "6:58 AM MDT",
   "sunset": "7:24 PM MDT",
-  "sunElevation": 49.4,
+  "sunElevation": 27.4,
   "weather": {
     "tempF": 64,
     "condition": "Clear",
-    "windSpeed": 4,
-    "windDirection": 258,
+    "windSpeed": 7,
+    "windDirection": 264,
     "icon": "sunny",
     "forecast": [
       {
@@ -58,5 +58,5 @@
       }
     ]
   },
-  "scrapedAt": "2026-04-01T21:07:36.553Z"
+  "scrapedAt": "2026-04-01T23:08:31.261Z"
 }
