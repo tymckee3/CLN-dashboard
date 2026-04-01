@@ -8,6 +8,7 @@ const PORT = process.env.PORT || 8080;
 let cachedData = null;
 let lastScrape = null;
 let isScraping = false;
+let scrapeTimeout = null;
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.use((req, res, next) => {
@@ -20,12 +21,19 @@ app.get('/data', (req, res) => {
 });
 
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', lastScrape, hasCachedData: !!cachedData, data: cachedData });
+  res.json({ status: 'ok', lastScrape, hasCachedData: !!cachedData });
 });
 
 async function scrapeDashboard() {
   if (isScraping) return;
   isScraping = true;
+
+  // Safety valve: force-reset isScraping after 3 minutes no matter what
+  scrapeTimeout = setTimeout(() => {
+    console.log('Safety timeout: resetting isScraping');
+    isScraping = false;
+  }, 3 * 60 * 1000);
+
   console.log(`[${new Date().toISOString()}] Starting scrape...`);
 
   const browser = await chromium.launch({
@@ -39,7 +47,8 @@ async function scrapeDashboard() {
     });
     const page = await context.newPage();
 
-    console.log('Going to dashboard URL...');
+    // Go directly to the dashboard - auth will redirect to login if needed
+    console.log('Navigating to dashboard...');
     await page.goto('https://apps.alsoenergy.com/powertrack/S72296/overview/dashboard', {
       waitUntil: 'domcontentloaded',
       timeout: 60000
@@ -48,56 +57,61 @@ async function scrapeDashboard() {
     const currentUrl = page.url();
     console.log('Current URL:', currentUrl);
 
-    if (currentUrl.includes('login') || currentUrl.includes('auth0') || currentUrl.includes('Account') || currentUrl.includes('stem.com')) {
-      console.log('On login page, authenticating...');
+    const needsLogin = currentUrl.includes('login') ||
+                       currentUrl.includes('auth0') ||
+                       currentUrl.includes('Account') ||
+                       currentUrl.includes('stem.com');
 
-      // Step 1: Fill email and click continue
-      await page.waitForSelector('input[type="email"], input[name="email"], input[name="username"]', { timeout: 30000 });
-      await page.fill('input[type="email"], input[name="email"], input[name="username"]', process.env.POWERTRACK_USER || '');
-      console.log('Email filled...');
+    if (needsLogin) {
+      console.log('Login required, authenticating...');
 
-      // Click the continue/next button
+      // Step 1: Fill email
+      await page.waitForSelector(
+        'input[type="email"], input[name="email"], input[name="username"]',
+        { timeout: 30000 }
+      );
+      await page.fill(
+        'input[type="email"], input[name="email"], input[name="username"]',
+        process.env.POWERTRACK_USER || ''
+      );
+      console.log('Email filled, clicking Continue...');
       await page.click('button[type="submit"], input[type="submit"]');
-      console.log('Clicked continue...');
 
-      // Step 2: Wait for password page URL
+      // Step 2: Wait for password page URL to confirm we advanced
       await page.waitForURL('**/login/password**', { timeout: 30000 });
-      console.log('On password page:', page.url());
+      console.log('Password page reached...');
+      await page.waitForTimeout(1500);
 
-      // Wait for the visible password input
-      await page.waitForTimeout(1000);
-      
-      // Find the visible password field specifically
-      const passwordInput = page.locator('input[type="password"]').filter({ hasNot: page.locator('[aria-hidden="true"]') });
+      // Step 3: Fill password - wait for it to be visible and enabled
+      const passwordInput = page.locator('input[type="password"]').first();
       await passwordInput.waitFor({ state: 'visible', timeout: 15000 });
       await passwordInput.fill(process.env.POWERTRACK_PASS || '');
-      console.log('Password filled...');
-
-      // Press Enter to submit (more reliable than clicking button)
+      console.log('Password filled, submitting...');
       await passwordInput.press('Enter');
-      console.log('Submitted via Enter...');
 
-      // Wait for URL to change away from password page
-      await page.waitForURL(url => !url.includes('stem.com') && !url.includes('auth0'), { timeout: 60000 });
-      console.log('Login complete! URL:', page.url());
+      // Step 4: Wait for successful redirect to alsoenergy.com
+      // After login, stem.com redirects back to apps.alsoenergy.com
+      await page.waitForURL('https://apps.alsoenergy.com/**', { timeout: 60000 });
+      console.log('Login successful! Redirected to:', page.url());
 
-      // Navigate to dashboard
+      // Step 5: Navigate to the specific dashboard
       await page.goto('https://apps.alsoenergy.com/powertrack/S72296/overview/dashboard', {
         waitUntil: 'domcontentloaded',
         timeout: 60000
       });
     }
 
-    // Verify we're on the right page
+    // Final check - make sure we're on the right page
     const finalUrl = page.url();
     console.log('Final URL:', finalUrl);
-    if (finalUrl.includes('login') || finalUrl.includes('stem.com')) {
-      throw new Error('Still on login page: ' + finalUrl);
+    if (!finalUrl.includes('alsoenergy.com')) {
+      throw new Error('Unexpected URL after login: ' + finalUrl);
     }
 
-    // Wait for dashboard widgets to load
+    // Wait for dashboard JS to render all widgets
+    console.log('Waiting for dashboard widgets...');
     await page.waitForTimeout(8000);
-    console.log('Scraping dashboard...');
+    console.log('Scraping data...');
 
     const data = await page.evaluate(() => {
       const pageText = document.body.innerText;
@@ -115,12 +129,13 @@ async function scrapeDashboard() {
         last30Days: last30Match ? { value: last30Match[1], unit: last30Match[2] } : null,
         pvSizeAC: pvSizeMatch ? pvSizeMatch[1] : '4,975',
         pvSizeDC: pvSizeMatch ? pvSizeMatch[2] : '6,499',
-        rawText: pageText.substring(0, 500)
+        rawText: pageText.substring(0, 2000)
       };
     });
 
-    console.log('Scraped:', JSON.stringify(data, null, 2));
+    console.log('Scraped data:', JSON.stringify(data, null, 2));
 
+    // Calculate CO2 offset (EPA average: 0.386 kg CO2 per kWh)
     let co2 = null;
     if (data.last30Days) {
       const val = parseFloat(data.last30Days.value.replace(',', ''));
@@ -129,6 +144,7 @@ async function scrapeDashboard() {
       co2 = (kwh * 0.386 / 1000).toFixed(1);
     }
 
+    // Only update cache if we got real data
     cachedData = {
       status: 'ok',
       currentKW: data.currentKW || '—',
@@ -139,21 +155,23 @@ async function scrapeDashboard() {
       pvSizeAC: data.pvSizeAC || '4,975',
       pvSizeDC: data.pvSizeDC || '6,499',
       co2OffsetTons30d: co2,
-      scrapedAt: new Date().toISOString(),
-      debug: data.rawText
+      scrapedAt: new Date().toISOString()
     };
 
     lastScrape = new Date().toISOString();
-    console.log('Scrape successful!');
+    console.log('Scrape successful at', lastScrape);
 
   } catch (err) {
     console.error('Scrape failed:', err.message);
+    // Keep existing cachedData so dashboard doesn't go blank
   } finally {
+    clearTimeout(scrapeTimeout);
     await browser.close();
     isScraping = false;
   }
 }
 
+// Initial scrape on startup, then every 5 minutes
 scrapeDashboard();
 setInterval(scrapeDashboard, 5 * 60 * 1000);
 
