@@ -28,9 +28,9 @@ async function scrapeDashboard() {
   isScraping = true;
 
   const safetyTimer = setTimeout(() => {
-    console.log('Safety timeout hit, resetting scraper');
+    console.log('Safety timeout, resetting scraper');
     isScraping = false;
-  }, 3 * 60 * 1000);
+  }, 4 * 60 * 1000);
 
   console.log(`[${new Date().toISOString()}] Starting scrape...`);
 
@@ -45,53 +45,60 @@ async function scrapeDashboard() {
     });
     const page = await context.newPage();
 
-    // Start from the AlsoEnergy login page exactly like a real user
-    console.log('Going to AlsoEnergy login page...');
-    await page.goto('https://home.alsoenergy.com/login', {
+    // Go directly to the AlsoEnergy login URL
+    console.log('Going to login URL...');
+    await page.goto('https://apps.alsoenergy.com/Account/login', {
       waitUntil: 'domcontentloaded',
       timeout: 60000
     });
+    console.log('URL:', page.url());
 
-    // Click the "login to PowerTrack" button
-    console.log('Clicking Login to PowerTrack...');
-    await page.waitForSelector('a:has-text("PowerTrack"), button:has-text("PowerTrack")', { timeout: 15000 });
-    await page.click('a:has-text("PowerTrack"), button:has-text("PowerTrack")');
-
-    // Now on stem.com email page
-    console.log('Waiting for email field...');
-    await page.waitForSelector('input[name="username"], input[type="email"]', { timeout: 30000 });
+    // Step 1: Fill email
+    await page.waitForSelector('input[name="username"], input[type="email"]', { timeout: 15000 });
     await page.fill('input[name="username"], input[type="email"]', process.env.POWERTRACK_USER || '');
     console.log('Email filled, clicking Continue...');
-    await page.click('button:has-text("Continue"), input[type="submit"]');
+    await page.click('button:has-text("Continue")');
 
-    // Now on password page - click the Continue button explicitly
-    console.log('Waiting for password page...');
-    await page.waitForURL('**/login/password**', { timeout: 30000 });
+    // Step 2: Wait for password page
+    await page.waitForURL('**/login/password**', { timeout: 15000 });
+    console.log('Password page loaded...');
     await page.waitForTimeout(1000);
 
-    console.log('Filling password...');
-    const passwordInput = page.locator('input[type="password"]').first();
-    await passwordInput.waitFor({ state: 'visible', timeout: 15000 });
-    await passwordInput.fill(process.env.POWERTRACK_PASS || '');
+    // Step 3: Fill password and click Continue
+    const pwd = page.locator('input[type="password"]').first();
+    await pwd.waitFor({ state: 'visible', timeout: 10000 });
+    await pwd.fill(process.env.POWERTRACK_PASS || '');
+    console.log('Password filled, clicking Continue...');
+    await page.click('button:has-text("Continue")');
 
-    // Click the Continue button explicitly (not Enter)
-    console.log('Clicking Continue...');
-    await page.click('button:has-text("Continue"), button[type="submit"]');
+    // Step 4: Wait up to 45 seconds for redirect to alsoenergy.com
+    // (test showed it takes ~22 seconds to redirect)
+    console.log('Waiting for redirect to PowerTrack...');
+    let loggedIn = false;
+    for (let i = 0; i < 23; i++) {
+      await page.waitForTimeout(2000);
+      const url = page.url();
+      console.log(`[${(i+1)*2}s] ${url.substring(0, 70)}`);
+      if (url.includes('alsoenergy.com/powertrack')) {
+        console.log('Logged in successfully!');
+        loggedIn = true;
+        break;
+      }
+    }
 
-    // Wait to land on alsoenergy.com
-    console.log('Waiting to land on PowerTrack...');
-    await page.waitForURL('**/powertrack/**', { timeout: 60000 });
-    console.log('Logged in! URL:', page.url());
+    if (!loggedIn) {
+      throw new Error('Login redirect timed out — still on: ' + page.url());
+    }
 
-    // Navigate to CLN dashboard
+    // Step 5: Navigate to CLN dashboard
     console.log('Navigating to CLN dashboard...');
     await page.goto('https://apps.alsoenergy.com/powertrack/S72296/overview/dashboard', {
       waitUntil: 'domcontentloaded',
       timeout: 60000
     });
 
-    // Wait for dashboard widgets to render
-    console.log('Waiting for dashboard data to load...');
+    // Wait for widgets to render
+    console.log('Waiting for dashboard widgets...');
     await page.waitForTimeout(8000);
     console.log('Scraping...');
 
@@ -115,7 +122,7 @@ async function scrapeDashboard() {
       };
     });
 
-    console.log('Scraped data:', JSON.stringify(data, null, 2));
+    console.log('Scraped:', JSON.stringify(data, null, 2));
 
     let co2 = null;
     if (data.last30Days) {
