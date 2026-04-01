@@ -1,9 +1,9 @@
 {
   "status": "ok",
-  "currentKW": "582.6",
-  "capacityFactor": "12",
+  "currentKW": "543.8",
+  "capacityFactor": "11",
   "todayKWh": {
-    "value": "1.85",
+    "value": "3.21",
     "unit": "MWh"
   },
   "yesterdayKWh": {
@@ -17,5 +17,5 @@
   "pvSizeAC": "4,975",
   "pvSizeDC": "6,499",
   "co2OffsetTons30d": "459.3",
-  "scrapedAt": "2026-04-01T18:43:45.761Z"
+  "scrapedAt": "2026-04-01T21:05:06.760Z"
 }
