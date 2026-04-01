@@ -49,27 +49,27 @@ async function scrapeDashboard() {
       timeout: 60000
     });
 
-    // Auth0 loads the form dynamically - wait for the actual email input
-    console.log('Waiting for Auth0 email field...');
-    await page.waitForSelector(
-      'input[type="email"], input[name="email"], input[name="username"], input[id="email"], input[id="username"]',
-      { timeout: 30000 }
-    );
+    // Step 1: Fill email
+    console.log('Waiting for email field...');
+    await page.waitForSelector('input[type="email"], input[name="email"], input[name="username"]', { timeout: 30000 });
+    await page.fill('input[type="email"], input[name="email"], input[name="username"]', process.env.POWERTRACK_USER || '');
+    console.log('Email filled, clicking Continue...');
 
-    console.log('Filling credentials...');
-    await page.fill(
-      'input[type="email"], input[name="email"], input[name="username"], input[id="email"], input[id="username"]',
-      process.env.POWERTRACK_USER || ''
-    );
-
-    await page.fill('input[type="password"]', process.env.POWERTRACK_PASS || '');
-
-    console.log('Submitting login...');
+    // Click Continue to reveal password field
     await page.click('button[type="submit"], input[type="submit"], button[name="action"]');
 
-    await page.waitForNavigation({ waitUntil: 'networkidle', timeout: 60000 });
-    console.log('Logged in! Current URL:', page.url());
+    // Step 2: Wait for visible password field to appear
+    console.log('Waiting for password field...');
+    await page.waitForSelector('input[type="password"]:visible', { timeout: 30000 });
+    await page.fill('input[type="password"]:visible', process.env.POWERTRACK_PASS || '');
+    console.log('Password filled, submitting...');
 
+    // Submit login
+    await page.click('button[type="submit"], input[type="submit"], button[name="action"]');
+    await page.waitForNavigation({ waitUntil: 'networkidle', timeout: 60000 });
+    console.log('Logged in! URL:', page.url());
+
+    // Navigate to CLN/ASG8 dashboard
     console.log('Navigating to CLN dashboard...');
     await page.goto('https://apps.alsoenergy.com/powertrack/S72296/overview/dashboard', {
       waitUntil: 'networkidle',
@@ -77,7 +77,7 @@ async function scrapeDashboard() {
     });
 
     await page.waitForTimeout(6000);
-    console.log('Dashboard loaded, scraping data...');
+    console.log('Dashboard loaded, scraping...');
 
     const data = await page.evaluate(() => {
       const pageText = document.body.innerText;
@@ -85,7 +85,7 @@ async function scrapeDashboard() {
       const capacityFactorMatch = pageText.match(/PV Capacity Factor[:\s]+([\d]+)%/i);
       const todayMatch = pageText.match(/Today\s+([\d,\.]+)\s*(kWh|MWh|GWh)/i);
       const yesterdayMatch = pageText.match(/Yesterday\s+([\d,\.]+)\s*(kWh|MWh|GWh)/i);
-      const last30Match = pageText.match(/Last 30d?\s+([\d,\.]+)\s*(kWh|MWh|GWh)/i);
+      const last30Match = pageText.match(/Last 30d?\s+([\d,\.]+)\s*(kWh|[\s]?MWh|GWh)/i);
       const pvSizeMatch = pageText.match(/([\d,\.]+)\s*kW\s*\(AC\)\s*\/\s*([\d,\.]+)\s*kW\s*\(DC\)/i);
       return {
         currentKW: pvProductionMatch ? pvProductionMatch[1] : null,
@@ -99,7 +99,7 @@ async function scrapeDashboard() {
       };
     });
 
-    console.log('Raw scraped data:', JSON.stringify(data, null, 2));
+    console.log('Scraped:', JSON.stringify(data, null, 2));
 
     let co2 = null;
     if (data.last30Days) {
