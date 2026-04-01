@@ -233,8 +233,14 @@ function updateSun(){
   const sp=sunPt(isNight?0:pct);
   $('sunD').setAttribute('cx',sp.x.toFixed(1));$('sunD').setAttribute('cy',sp.y.toFixed(1));
   $('sunH').setAttribute('cx',sp.x.toFixed(1));$('sunH').setAttribute('cy',sp.y.toFixed(1));
-  if(pct>0&&!isNight){const lg=pct>0.5?1:0;const pd=`M 20 62 A 430 56 0 ${lg} 1 ${sp.x.toFixed(1)} ${sp.y.toFixed(1)}`;$('arcP').setAttribute('d',pd);$('arcG').setAttribute('d',pd);}
-  else{$('arcP').setAttribute('d','');$('arcG').setAttribute('d','');}
+  if(pct>0&&!isNight){
+    // Build trail as polyline of points along the sine curve — no SVG arc math
+    let pts=[];
+    const steps=60;
+    for(let i=0;i<=steps;i++){const t=pct*i/steps;pts.push(`${(20+860*t).toFixed(1)},${(62-56*Math.sin(Math.PI*t)).toFixed(1)}`);}
+    const pd='M '+pts.join(' L ');
+    $('arcP').setAttribute('d',pd);$('arcG').setAttribute('d',pd);
+  }else{$('arcP').setAttribute('d','');$('arcG').setAttribute('d','');}
   $('nightEl').classList.toggle('on',isNight);
   if(isNight)$('nightSr').textContent='Next sunrise: '+riseStr;
 }
