@@ -5,22 +5,32 @@ on:
     - cron: '*/10 * * * *'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   scrape:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+
       - run: npm install
+
       - run: npx playwright install chromium --with-deps
+
       - name: Run scraper
         env:
           POWERTRACK_USER: ${{ secrets.POWERTRACK_USER }}
           POWERTRACK_PASS: ${{ secrets.POWERTRACK_PASS }}
         run: node scraper.js
-      - name: Push data
+
+      - name: Commit and push data
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
