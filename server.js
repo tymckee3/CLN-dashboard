@@ -49,43 +49,39 @@ async function scrapeDashboard() {
     console.log('Current URL:', currentUrl);
 
     if (currentUrl.includes('login') || currentUrl.includes('auth0') || currentUrl.includes('Account') || currentUrl.includes('stem.com')) {
-      console.log('Redirected to login, authenticating...');
+      console.log('On login page, authenticating...');
 
-      // Step 1: Fill email
+      // Step 1: Fill email and click continue
       await page.waitForSelector('input[type="email"], input[name="email"], input[name="username"]', { timeout: 30000 });
       await page.fill('input[type="email"], input[name="email"], input[name="username"]', process.env.POWERTRACK_USER || '');
-      console.log('Email filled, clicking Continue...');
+      console.log('Email filled...');
+
+      // Click the continue/next button
       await page.click('button[type="submit"], input[type="submit"]');
+      console.log('Clicked continue...');
 
-      // Step 2: Wait for visible password field
-      await page.waitForSelector('input[type="password"]:not([aria-hidden="true"])', { timeout: 30000 });
-      console.log('Password field visible...');
-      await page.fill('input[type="password"]:not([aria-hidden="true"])', process.env.POWERTRACK_PASS || '');
-      console.log('Password filled, submitting...');
-      await page.click('button[type="submit"], input[type="submit"]');
+      // Step 2: Wait for password page URL
+      await page.waitForURL('**/login/password**', { timeout: 30000 });
+      console.log('On password page:', page.url());
 
-      // Wait up to 90 seconds for redirect away from auth pages
-      console.log('Waiting for login redirect...');
-      let waited = 0;
-      let loggedIn = false;
-      while (waited < 90000) {
-        await page.waitForTimeout(2000);
-        waited += 2000;
-        const url = page.url();
-        console.log(`Checking URL (${waited/1000}s):`, url.substring(0, 60));
-        if (!url.includes('auth0') && !url.includes('login') && !url.includes('Account') && !url.includes('stem.com')) {
-          console.log('Login complete! URL:', url);
-          loggedIn = true;
-          break;
-        }
-      }
+      // Wait for the visible password input
+      await page.waitForTimeout(1000);
+      
+      // Find the visible password field specifically
+      const passwordInput = page.locator('input[type="password"]').filter({ hasNot: page.locator('[aria-hidden="true"]') });
+      await passwordInput.waitFor({ state: 'visible', timeout: 15000 });
+      await passwordInput.fill(process.env.POWERTRACK_PASS || '');
+      console.log('Password filled...');
 
-      if (!loggedIn) {
-        throw new Error('Login redirect timed out after 90 seconds');
-      }
+      // Press Enter to submit (more reliable than clicking button)
+      await passwordInput.press('Enter');
+      console.log('Submitted via Enter...');
 
-      // Navigate to dashboard after login
-      console.log('Navigating to dashboard after login...');
+      // Wait for URL to change away from password page
+      await page.waitForURL(url => !url.includes('stem.com') && !url.includes('auth0'), { timeout: 60000 });
+      console.log('Login complete! URL:', page.url());
+
+      // Navigate to dashboard
       await page.goto('https://apps.alsoenergy.com/powertrack/S72296/overview/dashboard', {
         waitUntil: 'domcontentloaded',
         timeout: 60000
@@ -95,13 +91,13 @@ async function scrapeDashboard() {
     // Verify we're on the right page
     const finalUrl = page.url();
     console.log('Final URL:', finalUrl);
-    if (finalUrl.includes('login') || finalUrl.includes('auth0') || finalUrl.includes('stem.com')) {
-      throw new Error('Still on login page after auth attempt: ' + finalUrl);
+    if (finalUrl.includes('login') || finalUrl.includes('stem.com')) {
+      throw new Error('Still on login page: ' + finalUrl);
     }
 
     // Wait for dashboard widgets to load
     await page.waitForTimeout(8000);
-    console.log('Dashboard loaded, scraping...');
+    console.log('Scraping dashboard...');
 
     const data = await page.evaluate(() => {
       const pageText = document.body.innerText;
@@ -123,7 +119,7 @@ async function scrapeDashboard() {
       };
     });
 
-    console.log('Scraped data:', JSON.stringify(data, null, 2));
+    console.log('Scraped:', JSON.stringify(data, null, 2));
 
     let co2 = null;
     if (data.last30Days) {
