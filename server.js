@@ -64,28 +64,43 @@ async function scrapeDashboard() {
       console.log('Password filled, submitting...');
       await page.click('button[type="submit"], input[type="submit"]');
 
-      // Wait for redirect away from login - poll URL every second
+      // Wait up to 90 seconds for redirect away from auth pages
       console.log('Waiting for login redirect...');
       let waited = 0;
-      while (waited < 60000) {
-        await page.waitForTimeout(1000);
-        waited += 1000;
+      let loggedIn = false;
+      while (waited < 90000) {
+        await page.waitForTimeout(2000);
+        waited += 2000;
         const url = page.url();
+        console.log(`Checking URL (${waited/1000}s):`, url.substring(0, 60));
         if (!url.includes('auth0') && !url.includes('login') && !url.includes('Account') && !url.includes('stem.com')) {
           console.log('Login complete! URL:', url);
+          loggedIn = true;
           break;
         }
       }
 
-      // Navigate to dashboard
+      if (!loggedIn) {
+        throw new Error('Login redirect timed out after 90 seconds');
+      }
+
+      // Navigate to dashboard after login
+      console.log('Navigating to dashboard after login...');
       await page.goto('https://apps.alsoenergy.com/powertrack/S72296/overview/dashboard', {
         waitUntil: 'domcontentloaded',
         timeout: 60000
       });
     }
 
+    // Verify we're on the right page
+    const finalUrl = page.url();
+    console.log('Final URL:', finalUrl);
+    if (finalUrl.includes('login') || finalUrl.includes('auth0') || finalUrl.includes('stem.com')) {
+      throw new Error('Still on login page after auth attempt: ' + finalUrl);
+    }
+
     // Wait for dashboard widgets to load
-    await page.waitForTimeout(7000);
+    await page.waitForTimeout(8000);
     console.log('Dashboard loaded, scraping...');
 
     const data = await page.evaluate(() => {
@@ -104,11 +119,11 @@ async function scrapeDashboard() {
         last30Days: last30Match ? { value: last30Match[1], unit: last30Match[2] } : null,
         pvSizeAC: pvSizeMatch ? pvSizeMatch[1] : '4,975',
         pvSizeDC: pvSizeMatch ? pvSizeMatch[2] : '6,499',
-        rawText: pageText.substring(0, 3000)
+        rawText: pageText.substring(0, 500)
       };
     });
 
-    console.log('Scraped:', JSON.stringify(data, null, 2));
+    console.log('Scraped data:', JSON.stringify(data, null, 2));
 
     let co2 = null;
     if (data.last30Days) {
@@ -137,7 +152,6 @@ async function scrapeDashboard() {
 
   } catch (err) {
     console.error('Scrape failed:', err.message);
-    console.error(err.stack);
   } finally {
     await browser.close();
     isScraping = false;
