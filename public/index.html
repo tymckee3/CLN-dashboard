@@ -8,104 +8,109 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-:root{--gold:#F0A000;--green:#1FBFA0;--bg:#030609;--panel:rgba(255,255,255,0.028);--border:rgba(237,241,255,0.07);--t1:#EDF1FF;--t2:rgba(237,241,255,0.55);--t3:rgba(237,241,255,0.32);--t4:rgba(237,241,255,0.12);--mono:'SF Mono','Fira Code',monospace;}
+:root{
+  --gold:#F0A000;--green:#1FBFA0;--bg:#030609;
+  --panel:rgba(255,255,255,0.032);--border:rgba(237,241,255,0.08);
+  --t1:#EDF1FF;--t2:rgba(237,241,255,0.6);--t3:rgba(237,241,255,0.35);--t4:rgba(237,241,255,0.12);
+  --mono:'SF Mono','Fira Code',monospace;
+}
 html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--t1);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased}
-body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(ellipse 65% 50% at 50% 32%,rgba(240,160,0,0.09) 0%,transparent 60%);}
-body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;background-image:linear-gradient(rgba(255,255,255,0.012) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.012) 1px,transparent 1px);background-size:64px 64px;}
-.root{position:relative;z-index:1;display:grid;height:100vh;grid-template-rows:52px 1fr 52px;padding:10px 20px 8px;gap:0;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;background-image:linear-gradient(rgba(240,160,0,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(240,160,0,0.04) 1px,transparent 1px),radial-gradient(circle at 50% 35%,rgba(240,160,0,0.09) 0%,transparent 55%);background-size:80px 80px,80px 80px,100% 100%;}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;background-image:radial-gradient(circle,rgba(240,160,0,0.18) 1px,transparent 1px);background-size:80px 80px;}
+.root{position:relative;z-index:1;display:grid;height:100vh;grid-template-rows:58px 1fr 56px;padding:10px 22px 8px;gap:0;}
 .hdr{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:8px;}
-.hdr-l{display:flex;align-items:center;gap:12px;}
-.sun-s{width:26px;height:26px;flex-shrink:0;animation:spinSun 22s linear infinite;}
-.h-name{font-family:'Bebas Neue',sans-serif;font-size:1.35rem;letter-spacing:.1em;line-height:1;}
-.h-sub{font-size:.6rem;font-weight:500;letter-spacing:.18em;text-transform:uppercase;color:var(--t3);margin-top:2px;}
-.hdr-r{display:flex;align-items:center;gap:18px;}
-.live{display:flex;align-items:center;gap:7px;font-size:.58rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--green);}
-.pip{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 7px var(--green);animation:pipBlink 2.2s ease-in-out infinite;}
-.clk-t{font-family:var(--mono);font-size:1.15rem;font-weight:500;line-height:1;text-align:right;}
-.clk-d{font-size:.55rem;letter-spacing:.13em;text-transform:uppercase;color:var(--t3);margin-top:2px;text-align:right;}
-.upd{font-family:var(--mono);font-size:.52rem;color:var(--t3);}
-.main{display:grid;grid-template-columns:185px 1fr 185px;min-height:0;padding-top:6px;}
+.hdr-l{display:flex;align-items:center;gap:14px;}
+.sun-s{width:32px;height:32px;flex-shrink:0;animation:spinSun 22s linear infinite;}
+.h-name{font-family:'Bebas Neue',sans-serif;font-size:1.7rem;letter-spacing:.1em;line-height:1;}
+.h-sub{font-size:.72rem;font-weight:500;letter-spacing:.18em;text-transform:uppercase;color:var(--t3);margin-top:2px;}
+.hdr-r{display:flex;align-items:center;gap:22px;}
+.live{display:flex;align-items:center;gap:8px;font-size:.68rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--green);}
+.pip{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:pipBlink 2.2s ease-in-out infinite;}
+.clk-t{font-family:var(--mono);font-size:1.5rem;font-weight:500;line-height:1;text-align:right;}
+.clk-d{font-size:.65rem;letter-spacing:.13em;text-transform:uppercase;color:var(--t3);margin-top:2px;text-align:right;}
+.upd{font-family:var(--mono);font-size:.62rem;color:var(--t3);}
+.main{display:grid;grid-template-columns:220px 1fr 220px;min-height:0;padding-top:4px;}
 .sc{display:flex;flex-direction:column;justify-content:center;}
-.sc-l{padding-right:16px;border-right:1px solid var(--border);}
-.sc-r{padding-left:16px;border-left:1px solid var(--border);}
-.si{margin-bottom:18px;}
+.sc-l{padding-right:18px;border-right:1px solid var(--border);}
+.sc-r{padding-left:18px;border-left:1px solid var(--border);}
+.si{margin-bottom:16px;}
 .si:last-child{margin-bottom:0;}
-.si-lbl{font-size:.56rem;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--t3);margin-bottom:3px;}
-.si-row{display:flex;align-items:baseline;gap:4px;}
-.si-n{font-family:'Bebas Neue',sans-serif;font-size:2.3rem;letter-spacing:.03em;line-height:1;color:var(--t1);}
+.si-lbl{font-size:.65rem;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--t3);margin-bottom:3px;}
+.si-row{display:flex;align-items:baseline;gap:5px;}
+.si-n{font-family:'Bebas Neue',sans-serif;font-size:3rem;letter-spacing:.03em;line-height:1;color:var(--t1);}
 .si-n.au{color:var(--gold);}.si-n.gr{color:var(--green);}
-.si-u{font-size:.7rem;font-weight:400;color:var(--t2);}
-.si-s{font-size:.56rem;color:var(--t3);margin-top:3px;}
-.si-div{width:22px;height:1px;background:var(--border);margin:14px 0;}
-.irr-track{height:4px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;margin-top:5px;}
-.irr-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,rgba(240,160,0,.4),var(--gold));transition:width 1.5s ease;}
+.si-u{font-size:.88rem;font-weight:400;color:var(--t2);}
+.si-s{font-size:.65rem;color:var(--t3);margin-top:4px;}
+.si-div{width:26px;height:1px;background:var(--border);margin:14px 0;}
+.irr-track{height:5px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden;margin-top:6px;}
+.irr-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,rgba(240,160,0,.4),var(--gold));transition:width 1.5s ease;}
 .center{display:flex;flex-direction:column;align-items:center;min-height:0;}
-.hero-zone{display:flex;flex-direction:column;align-items:center;flex-shrink:0;padding-bottom:4px;}
-.ring-wrap{position:relative;width:min(46vh,42vw);height:min(46vh,42vw);flex-shrink:0;}
+.hero-zone{display:flex;flex-direction:column;align-items:center;flex-shrink:0;padding-bottom:2px;}
+.ring-wrap{position:relative;width:min(44vh,40vw);height:min(44vh,40vw);flex-shrink:0;}
 .ring-wrap svg{width:100%;height:100%;transform:rotate(-90deg);}
-.ring-glow{position:absolute;inset:-22%;border-radius:50%;background:radial-gradient(circle,rgba(240,160,0,0.14) 0%,transparent 62%);animation:glowBreathe 4s ease-in-out infinite;}
+.ring-glow{position:absolute;inset:-24%;border-radius:50%;background:radial-gradient(circle,rgba(240,160,0,0.15) 0%,transparent 62%);animation:glowBreathe 4s ease-in-out infinite;}
 .ring-inner{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
-.r-kw{font-family:'Bebas Neue',sans-serif;font-size:clamp(4rem,9.5vw,8rem);color:var(--gold);line-height:1;letter-spacing:.02em;text-shadow:0 0 60px rgba(240,160,0,.5);animation:numBreathe 4s ease-in-out infinite;}
+.r-kw{font-family:'Bebas Neue',sans-serif;font-size:clamp(4rem,9.5vw,8rem);color:var(--gold);line-height:1;letter-spacing:.02em;text-shadow:0 0 60px rgba(240,160,0,.55);animation:numBreathe 4s ease-in-out infinite;}
 .r-unit{font-family:'Bebas Neue',sans-serif;font-size:clamp(1.4rem,2.8vw,2.4rem);color:rgba(240,160,0,.38);letter-spacing:.08em;margin-top:-4px;}
-.r-cap{font-size:clamp(.55rem,1vw,.75rem);font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);margin-top:6px;}
-.r-homes{font-size:clamp(.6rem,1.1vw,.82rem);font-weight:600;color:var(--gold);opacity:.72;margin-top:3px;letter-spacing:.04em;}
-.story-zone{width:100%;text-align:center;padding:6px 16px 0;flex-shrink:0;}
-.s-text{font-size:clamp(1rem,2.1vw,1.5rem);font-weight:300;line-height:1.5;color:var(--t2);max-width:560px;margin:0 auto;transition:opacity .55s ease;}
+.r-cap{font-size:clamp(.6rem,1.1vw,.8rem);font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);margin-top:6px;}
+.r-homes{font-size:clamp(.65rem,1.2vw,.9rem);font-weight:600;color:var(--gold);opacity:.75;margin-top:3px;}
+.story-zone{width:100%;text-align:center;padding:5px 16px 0;flex-shrink:0;}
+.s-text{font-size:clamp(1.05rem,2.1vw,1.55rem);font-weight:300;line-height:1.45;color:var(--t2);max-width:560px;margin:0 auto;transition:opacity .55s ease;}
 .s-text strong{color:var(--t1);font-weight:600;}
-.s-big{font-family:'Bebas Neue',sans-serif;font-size:clamp(1.5rem,3.2vw,2.6rem);color:var(--gold);letter-spacing:.04em;line-height:1;display:inline-block;vertical-align:middle;margin:0 3px;}
-.s-note{font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:var(--t3);margin-top:6px;transition:opacity .55s ease;}
-.s-dots{display:flex;gap:6px;justify-content:center;margin-top:7px;}
+.s-big{font-family:'Bebas Neue',sans-serif;font-size:clamp(1.6rem,3.3vw,2.8rem);color:var(--gold);letter-spacing:.04em;line-height:1;display:inline-block;vertical-align:middle;margin:0 3px;}
+.s-note{font-size:.65rem;letter-spacing:.15em;text-transform:uppercase;color:var(--t3);margin-top:5px;transition:opacity .55s ease;}
+.s-dots{display:flex;gap:6px;justify-content:center;margin-top:6px;}
 .s-dot{width:5px;height:5px;border-radius:50%;background:var(--t4);transition:background .4s;}
 .s-dot.on{background:var(--gold);}
-.context-zone{width:100%;flex-shrink:0;padding:2px 0;}
-.arc-svg-wrap{width:100%;height:64px;}
+.arc-zone{width:100%;flex-shrink:0;padding:2px 0;}
+.arc-svg-wrap{width:100%;height:70px;}
 .arc-svg-wrap svg{width:100%;height:100%;}
-.deep-zone{flex:1;display:flex;flex-direction:column;gap:6px;min-height:0;}
-.wx-strip{display:flex;flex-shrink:0;padding:4px 0;}
+.deep-zone{flex:1;display:flex;flex-direction:column;gap:5px;min-height:0;}
+.wx-strip{display:flex;flex-shrink:0;padding:3px 0 4px;}
 .wx-item{flex:1;text-align:center;border-right:1px solid var(--border);}
 .wx-item:last-child{border-right:none;}
-.wx-val{font-family:'Bebas Neue',sans-serif;font-size:1.7rem;color:var(--t1);letter-spacing:.03em;line-height:1;}
+.wx-val{font-family:'Bebas Neue',sans-serif;font-size:2rem;color:var(--t1);letter-spacing:.03em;line-height:1;}
 .wx-val.gold{color:var(--gold);}
-.wx-lbl{font-size:.54rem;font-weight:600;letter-spacing:.17em;text-transform:uppercase;color:var(--t3);margin-top:3px;}
-.wx-note{font-size:.52rem;color:var(--t3);margin-top:2px;font-style:italic;}
-.wx-bar-wrap{width:60%;margin:4px auto 0;}
-.wx-bar-t{height:4px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;}
+.wx-lbl{font-size:.62rem;font-weight:600;letter-spacing:.17em;text-transform:uppercase;color:var(--t3);margin-top:3px;}
+.wx-note{font-size:.6rem;color:var(--t3);margin-top:2px;font-style:italic;}
+.wx-bar-wrap{width:55%;margin:4px auto 0;}
+.wx-bar-t{height:4px;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden;}
 .wx-bar-f{height:100%;border-radius:2px;background:linear-gradient(90deg,rgba(240,160,0,.4),var(--gold));transition:width 1.5s ease;}
 .charts{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:10px;min-height:0;}
-.cp{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:10px 13px;display:flex;flex-direction:column;position:relative;overflow:hidden;}
+.cp{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:11px 14px;display:flex;flex-direction:column;position:relative;overflow:hidden;}
 .cp::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--ca,var(--gold)),transparent);}
 .cp.cg{--ca:var(--green);}
-.cp-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;}
-.cp-lbl{font-size:.54rem;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--t3);}
-.cp-badge{font-size:.52rem;font-weight:600;letter-spacing:.06em;padding:2px 9px;border-radius:10px;}
+.cp-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;}
+.cp-lbl{font-size:.6rem;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--t3);}
+.cp-badge{font-size:.58rem;font-weight:600;letter-spacing:.06em;padding:2px 10px;border-radius:10px;}
 .cp-badge.above{background:rgba(31,191,160,.15);color:var(--green);}
 .cp-badge.below{background:rgba(237,241,255,.08);color:var(--t3);}
 .cp-in{flex:1;position:relative;min-height:0;}
-.btm{display:flex;align-items:center;border-top:1px solid var(--border);padding-top:8px;}
-.bt-tag{font-size:.55rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);white-space:nowrap;padding-right:14px;border-right:1px solid var(--border);flex-shrink:0;}
-.bt-msg{font-size:.88rem;color:var(--t2);padding:0 16px;animation:fadeUp .5s ease;}
+.btm{display:flex;align-items:center;border-top:1px solid var(--border);padding-top:9px;}
+.bt-tag{font-size:.65rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);white-space:nowrap;padding-right:16px;border-right:1px solid var(--border);flex-shrink:0;}
+.bt-msg{font-size:1rem;color:var(--t2);padding:0 18px;animation:fadeUp .5s ease;}
 .bt-msg strong{color:var(--t1);font-weight:600;}
-.night{position:fixed;inset:0;z-index:100;background:rgba(3,6,9,.95);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;opacity:0;pointer-events:none;transition:opacity 1.5s;}
+.night{position:fixed;inset:0;z-index:100;background:rgba(3,6,9,.96);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;opacity:0;pointer-events:none;transition:opacity 1.5s;}
 .night.on{opacity:1;pointer-events:all;}
-.n-ttl{font-family:'Bebas Neue',sans-serif;font-size:2.4rem;letter-spacing:.1em;color:var(--t3);}
-.n-sub{font-size:.75rem;color:var(--t3);letter-spacing:.1em;text-transform:uppercase;}
-.n-sr{font-family:var(--mono);font-size:.62rem;color:rgba(237,241,255,.22);margin-top:6px;}
+.n-ttl{font-family:'Bebas Neue',sans-serif;font-size:2.8rem;letter-spacing:.1em;color:var(--t3);}
+.n-sub{font-size:.82rem;color:var(--t3);letter-spacing:.1em;text-transform:uppercase;}
+.n-sr{font-family:var(--mono);font-size:.68rem;color:rgba(237,241,255,.22);margin-top:8px;}
 @keyframes spinSun{to{transform:rotate(360deg);}}
-@keyframes pipBlink{0%,100%{box-shadow:0 0 7px var(--green);}50%{box-shadow:none;opacity:.4;}}
-@keyframes glowBreathe{0%,100%{opacity:.65;}50%{opacity:1;}}
-@keyframes numBreathe{0%,100%{text-shadow:0 0 60px rgba(240,160,0,.5);}50%{text-shadow:0 0 100px rgba(240,160,0,.85);}}
+@keyframes pipBlink{0%,100%{box-shadow:0 0 8px var(--green);}50%{box-shadow:none;opacity:.4;}}
+@keyframes glowBreathe{0%,100%{opacity:.6;}50%{opacity:1;}}
+@keyframes numBreathe{0%,100%{text-shadow:0 0 60px rgba(240,160,0,.55);}50%{text-shadow:0 0 110px rgba(240,160,0,.9);}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(5px);}to{opacity:1;transform:translateY(0);}}
-@keyframes arcDotGlow{0%,100%{filter:drop-shadow(0 0 5px #F0A000);}50%{filter:drop-shadow(0 0 14px #F0A000);}}
+@keyframes arcGlow{0%,100%{filter:drop-shadow(0 0 6px #F0A000);}50%{filter:drop-shadow(0 0 16px #F0A000);}}
 </style>
 </head>
 <body>
 <div class="night" id="nightEl">
-  <svg width="44" height="44" viewBox="0 0 44 44" fill="none" style="opacity:.3">
-    <circle cx="22" cy="22" r="9" fill="none" stroke="rgba(237,241,255,.5)" stroke-width="1.8"/>
-    <line x1="22" y1="3" x2="22" y2="8" stroke="rgba(237,241,255,.3)" stroke-width="1.8" stroke-linecap="round"/>
-    <line x1="22" y1="36" x2="22" y2="41" stroke="rgba(237,241,255,.3)" stroke-width="1.8" stroke-linecap="round"/>
-    <line x1="3" y1="22" x2="8" y2="22" stroke="rgba(237,241,255,.3)" stroke-width="1.8" stroke-linecap="round"/>
-    <line x1="36" y1="22" x2="41" y2="22" stroke="rgba(237,241,255,.3)" stroke-width="1.8" stroke-linecap="round"/>
+  <svg width="50" height="50" viewBox="0 0 50 50" fill="none" style="opacity:.3">
+    <circle cx="25" cy="25" r="10" fill="none" stroke="rgba(237,241,255,.5)" stroke-width="2"/>
+    <line x1="25" y1="3" x2="25" y2="9" stroke="rgba(237,241,255,.3)" stroke-width="2" stroke-linecap="round"/>
+    <line x1="25" y1="41" x2="25" y2="47" stroke="rgba(237,241,255,.3)" stroke-width="2" stroke-linecap="round"/>
+    <line x1="3" y1="25" x2="9" y2="25" stroke="rgba(237,241,255,.3)" stroke-width="2" stroke-linecap="round"/>
+    <line x1="41" y1="25" x2="47" y2="25" stroke="rgba(237,241,255,.3)" stroke-width="2" stroke-linecap="round"/>
   </svg>
   <div class="n-ttl">Resting Until Sunrise</div>
   <div class="n-sub">Solar production resumes at dawn</div>
@@ -114,16 +119,16 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;back
 <div class="root">
 <header class="hdr">
   <div class="hdr-l">
-    <svg class="sun-s" viewBox="0 0 26 26" fill="none">
-      <circle cx="13" cy="13" r="4.5" fill="#F0A000"/>
-      <line x1="13" y1="1" x2="13" y2="4.5" stroke="#F0A000" stroke-width="1.8" stroke-linecap="round" opacity=".6"/>
-      <line x1="13" y1="21.5" x2="13" y2="25" stroke="#F0A000" stroke-width="1.8" stroke-linecap="round" opacity=".6"/>
-      <line x1="1" y1="13" x2="4.5" y2="13" stroke="#F0A000" stroke-width="1.8" stroke-linecap="round" opacity=".6"/>
-      <line x1="21.5" y1="13" x2="25" y2="13" stroke="#F0A000" stroke-width="1.8" stroke-linecap="round" opacity=".6"/>
-      <line x1="4" y1="4" x2="6.5" y2="6.5" stroke="#F0A000" stroke-width="1.4" stroke-linecap="round" opacity=".4"/>
-      <line x1="19.5" y1="19.5" x2="22" y2="22" stroke="#F0A000" stroke-width="1.4" stroke-linecap="round" opacity=".4"/>
-      <line x1="22" y1="4" x2="19.5" y2="6.5" stroke="#F0A000" stroke-width="1.4" stroke-linecap="round" opacity=".4"/>
-      <line x1="6.5" y1="19.5" x2="4" y2="22" stroke="#F0A000" stroke-width="1.4" stroke-linecap="round" opacity=".4"/>
+    <svg class="sun-s" viewBox="0 0 32 32" fill="none">
+      <circle cx="16" cy="16" r="5.5" fill="#F0A000"/>
+      <line x1="16" y1="1" x2="16" y2="5" stroke="#F0A000" stroke-width="2" stroke-linecap="round" opacity=".65"/>
+      <line x1="16" y1="27" x2="16" y2="31" stroke="#F0A000" stroke-width="2" stroke-linecap="round" opacity=".65"/>
+      <line x1="1" y1="16" x2="5" y2="16" stroke="#F0A000" stroke-width="2" stroke-linecap="round" opacity=".65"/>
+      <line x1="27" y1="16" x2="31" y2="16" stroke="#F0A000" stroke-width="2" stroke-linecap="round" opacity=".65"/>
+      <line x1="5" y1="5" x2="8" y2="8" stroke="#F0A000" stroke-width="1.5" stroke-linecap="round" opacity=".4"/>
+      <line x1="24" y1="24" x2="27" y2="27" stroke="#F0A000" stroke-width="1.5" stroke-linecap="round" opacity=".4"/>
+      <line x1="27" y1="5" x2="24" y2="8" stroke="#F0A000" stroke-width="1.5" stroke-linecap="round" opacity=".4"/>
+      <line x1="8" y1="24" x2="5" y2="27" stroke="#F0A000" stroke-width="1.5" stroke-linecap="round" opacity=".4"/>
     </svg>
     <div>
       <div class="h-name">Cuidando Los Niños Community Solar</div>
@@ -149,13 +154,13 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;back
       <div class="ring-wrap">
         <div class="ring-glow"></div>
         <svg viewBox="0 0 200 200" fill="none">
-          <circle cx="100" cy="100" r="84" stroke="rgba(237,241,255,0.055)" stroke-width="7" fill="none"/>
-          <line x1="100" y1="9" x2="100" y2="21" stroke="rgba(237,241,255,0.12)" stroke-width="1.5"/>
-          <line x1="191" y1="100" x2="179" y2="100" stroke="rgba(237,241,255,0.12)" stroke-width="1.5"/>
-          <line x1="100" y1="191" x2="100" y2="179" stroke="rgba(237,241,255,0.12)" stroke-width="1.5"/>
-          <line x1="9" y1="100" x2="21" y2="100" stroke="rgba(237,241,255,0.12)" stroke-width="1.5"/>
+          <circle cx="100" cy="100" r="84" stroke="rgba(237,241,255,0.06)" stroke-width="7" fill="none"/>
+          <line x1="100" y1="9" x2="100" y2="21" stroke="rgba(237,241,255,0.13)" stroke-width="1.5"/>
+          <line x1="191" y1="100" x2="179" y2="100" stroke="rgba(237,241,255,0.13)" stroke-width="1.5"/>
+          <line x1="100" y1="191" x2="100" y2="179" stroke="rgba(237,241,255,0.13)" stroke-width="1.5"/>
+          <line x1="9" y1="100" x2="21" y2="100" stroke="rgba(237,241,255,0.13)" stroke-width="1.5"/>
           <circle id="ringFill" cx="100" cy="100" r="84" stroke="url(#rg)" stroke-width="7" fill="none" stroke-linecap="round" stroke-dasharray="527.8" stroke-dashoffset="527.8" style="transition:stroke-dashoffset 2.5s cubic-bezier(.4,0,.2,1);"/>
-          <circle id="ringGlow" cx="100" cy="100" r="84" stroke="rgba(240,160,0,0.16)" stroke-width="14" fill="none" stroke-linecap="round" stroke-dasharray="527.8" stroke-dashoffset="527.8" style="transition:stroke-dashoffset 2.5s cubic-bezier(.4,0,.2,1);"/>
+          <circle id="ringGlow" cx="100" cy="100" r="84" stroke="rgba(240,160,0,0.18)" stroke-width="14" fill="none" stroke-linecap="round" stroke-dasharray="527.8" stroke-dashoffset="527.8" style="transition:stroke-dashoffset 2.5s cubic-bezier(.4,0,.2,1);"/>
           <defs><linearGradient id="rg" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#F0A000" stop-opacity=".45"/><stop offset="100%" stop-color="#F0A000"/></linearGradient></defs>
         </svg>
         <div class="ring-inner">
@@ -171,19 +176,19 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;back
         <div class="s-dots" id="sdEl"></div>
       </div>
     </div>
-    <div class="context-zone">
+    <div class="arc-zone">
       <div class="arc-svg-wrap">
-        <svg viewBox="0 0 800 64" preserveAspectRatio="xMidYMid meet" fill="none">
-          <line x1="30" y1="58" x2="770" y2="58" stroke="rgba(237,241,255,0.06)" stroke-width="1"/>
-          <path id="arcBg" d="M 30 58 A 370 52 0 0 1 770 58" stroke="rgba(237,241,255,0.06)" stroke-width="1.5" fill="none"/>
-          <path id="arcP" d="" stroke="rgba(240,160,0,0.3)" stroke-width="1.5" fill="none"/>
-          <path id="arcG" d="" stroke="rgba(240,160,0,0.55)" stroke-width="1" fill="none"/>
-          <line x1="400" y1="8" x2="400" y2="58" stroke="rgba(237,241,255,0.05)" stroke-width="1" stroke-dasharray="3,4"/>
-          <text x="400" y="7" font-size="6.5" fill="rgba(237,241,255,0.2)" font-family="SF Mono,Fira Code,monospace" text-anchor="middle">SOLAR NOON</text>
-          <circle id="sunD" cx="30" cy="58" r="6.5" fill="#F0A000" style="animation:arcDotGlow 3s ease-in-out infinite;"/>
-          <circle id="sunH" cx="30" cy="58" r="12" fill="rgba(240,160,0,0.14)"/>
-          <text id="rLbl" x="30" y="52" font-size="8" fill="rgba(240,160,0,0.65)" font-family="SF Mono,Fira Code,monospace" text-anchor="middle">—</text>
-          <text id="sLbl" x="770" y="52" font-size="8" fill="rgba(240,160,0,0.65)" font-family="SF Mono,Fira Code,monospace" text-anchor="middle">—</text>
+        <svg viewBox="0 0 900 70" preserveAspectRatio="xMidYMid meet" fill="none">
+          <line x1="20" y1="62" x2="880" y2="62" stroke="rgba(237,241,255,0.07)" stroke-width="1"/>
+          <path id="arcBg" d="M 20 62 A 430 56 0 0 1 880 62" stroke="rgba(237,241,255,0.07)" stroke-width="1.5" fill="none"/>
+          <path id="arcP" d="" stroke="rgba(240,160,0,0.32)" stroke-width="2" fill="none"/>
+          <path id="arcG" d="" stroke="rgba(240,160,0,0.6)" stroke-width="1" fill="none"/>
+          <line x1="450" y1="8" x2="450" y2="62" stroke="rgba(237,241,255,0.06)" stroke-width="1" stroke-dasharray="3,4"/>
+          <text x="450" y="7" font-size="7" fill="rgba(237,241,255,0.22)" font-family="SF Mono,Fira Code,monospace" text-anchor="middle">SOLAR NOON</text>
+          <circle id="sunD" cx="20" cy="62" r="7" fill="#F0A000" style="animation:arcGlow 3s ease-in-out infinite;"/>
+          <circle id="sunH" cx="20" cy="62" r="13" fill="rgba(240,160,0,0.15)"/>
+          <text id="rLbl" x="20" y="55" font-size="10" font-weight="600" fill="rgba(240,160,0,0.75)" font-family="SF Mono,Fira Code,monospace" text-anchor="middle">—</text>
+          <text id="sLbl" x="880" y="55" font-size="10" font-weight="600" fill="rgba(240,160,0,0.75)" font-family="SF Mono,Fira Code,monospace" text-anchor="middle">—</text>
         </svg>
       </div>
     </div>
@@ -194,8 +199,8 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;back
         <div class="wx-item"><div class="wx-val" id="wxTmp">—</div><div class="wx-lbl">Temp °F</div><div class="wx-note" id="wxTmpNote"></div></div>
       </div>
       <div class="charts">
-        <div class="cp cg"><div class="cp-head"><div class="cp-lbl">Output Follows the Sun · 7 Days</div><div class="cp-badge" id="avgBadge"></div></div><div class="cp-in"><canvas id="comboC"></canvas></div></div>
-        <div class="cp"><div class="cp-head"><div class="cp-lbl">Today's Solar Irradiance · W/m²</div></div><div class="cp-in"><canvas id="irrC"></canvas></div></div>
+        <div class="cp cg"><div class="cp-head"><div class="cp-lbl">7-Day Production History</div><div class="cp-badge" id="avgBadge"></div></div><div class="cp-in"><canvas id="comboC"></canvas></div></div>
+        <div class="cp"><div class="cp-head"><div class="cp-lbl">7-Day Irradiance Forecast · W/m²</div></div><div class="cp-in"><canvas id="irrC"></canvas></div></div>
       </div>
     </div>
   </div>
@@ -204,7 +209,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;back
     <div class="si-div"></div>
     <div class="si"><div class="si-lbl">Solar Irradiance</div><div class="si-row"><span class="si-n" id="irrSide">—</span><span class="si-u">&nbsp;W/m²</span></div><div class="irr-track"><div class="irr-fill" id="irrSideBar" style="width:0%"></div></div><div class="si-s" id="irrSideNote"></div></div>
     <div class="si-div"></div>
-    <div class="si"><div class="si-lbl">System</div><div class="si-row"><span class="si-n">4,975</span><span class="si-u">&nbsp;kW AC</span></div><div class="si-s">6,499 kW DC · 20 Inv.</div></div>
+    <div class="si"><div class="si-lbl">System</div><div class="si-row"><span class="si-n">4,975</span><span class="si-u">&nbsp;kW AC</span></div><div class="si-s">6,499 kW DC · 20 Inverters</div></div>
   </div>
 </div>
 <div class="btm"><div class="bt-tag">Solar insight</div><div class="bt-msg" id="btmEl">Loading...</div></div>
@@ -217,26 +222,119 @@ function tick(){const n=new Date();$('clkEl').textContent=n.toLocaleTimeString('
 tick();setInterval(tick,1000);
 function parseTimeStr(s){if(!s)return null;const m=s.match(/(\d+):(\d+)\s*(AM|PM)/i);if(!m)return null;let h=parseInt(m[1]),mn=parseInt(m[2]);if(m[3].toUpperCase()==='PM'&&h!==12)h+=12;if(m[3].toUpperCase()==='AM'&&h===12)h=0;return h+mn/60;}
 let sunCache={rise:6.97,set:19.4,riseStr:'6:58 AM',setStr:'7:24 PM'};
-function updateSun(){const now=new Date(),nowH=now.getHours()+now.getMinutes()/60;const{rise,set,riseStr,setStr}=sunCache;const pct=Math.max(0,Math.min(1,(nowH-rise)/(set-rise)));const isNight=nowH<rise||nowH>set;$('rLbl').textContent=riseStr;$('sLbl').textContent=setStr;const cx=400,cy=58,rx=370,ry=52,pad=30;function pt(p){const theta=Math.PI*(1-p);return{x:cx-rx*Math.cos(theta),y:cy-ry*Math.sin(theta)};}if(pct>0){const e=pt(pct);const lg=pct>0.5?1:0;const pd=`M ${pad} ${cy} A ${rx} ${ry} 0 ${lg} 1 ${e.x} ${e.y}`;$('arcP').setAttribute('d',pd);$('arcG').setAttribute('d',pd);}else{$('arcP').setAttribute('d','');$('arcG').setAttribute('d','');}const sp=pt(pct);$('sunD').setAttribute('cx',sp.x);$('sunD').setAttribute('cy',sp.y);$('sunH').setAttribute('cx',sp.x);$('sunH').setAttribute('cy',sp.y);$('nightEl').classList.toggle('on',isNight);if(isNight)$('nightSr').textContent='Next sunrise: '+riseStr;}
+function updateSun(){
+  const now=new Date(),nowH=now.getHours()+now.getMinutes()/60;
+  const{rise,set,riseStr,setStr}=sunCache;
+  const pct=Math.max(0,Math.min(1,(nowH-rise)/(set-rise)));
+  const isNight=nowH<rise||nowH>set;
+  $('rLbl').textContent=riseStr;$('sLbl').textContent=setStr;
+  const cx=450,cy=62,rx=430,ry=56,pad=20;
+  function pt(p){const theta=Math.PI*(1-p);return{x:cx-rx*Math.cos(theta),y:cy-ry*Math.sin(theta)};}
+  if(pct>0){const e=pt(pct);const lg=pct>0.5?1:0;const pd=`M ${pad} ${cy} A ${rx} ${ry} 0 ${lg} 1 ${e.x.toFixed(2)} ${e.y.toFixed(2)}`;$('arcP').setAttribute('d',pd);$('arcG').setAttribute('d',pd);}
+  else{$('arcP').setAttribute('d','');$('arcG').setAttribute('d','');}
+  const sp=pt(pct);
+  $('sunD').setAttribute('cx',sp.x.toFixed(2));$('sunD').setAttribute('cy',sp.y.toFixed(2));
+  $('sunH').setAttribute('cx',sp.x.toFixed(2));$('sunH').setAttribute('cy',sp.y.toFixed(2));
+  $('nightEl').classList.toggle('on',isNight);
+  if(isNight)$('nightSr').textContent='Next sunrise: '+riseStr;
+}
 updateSun();setInterval(updateSun,60000);
 function setRing(p){const c=527.8,o=c*(1-Math.min(1,p));$('ringFill').style.strokeDashoffset=o;$('ringGlow').style.strokeDashoffset=o;}
-Chart.defaults.color='rgba(237,241,255,0.35)';Chart.defaults.font.family='Inter';
+Chart.defaults.color='rgba(237,241,255,0.38)';Chart.defaults.font.family='Inter';
 let cC,cI;
-function makeCombo(labels,prod,irr){const ctx=$('comboC').getContext('2d');if(cC)cC.destroy();const avg=prod.length?prod.reduce((a,b)=>a+b,0)/prod.length:0;const today=prod[prod.length-1]||0;const badge=$('avgBadge');if(avg>0){const pct=Math.round((today-avg)/avg*100);badge.textContent=(pct>=0?'↑ ':'↓ ')+Math.abs(pct)+'% vs avg';badge.className='cp-badge '+(pct>=0?'above':'below');}cC=new Chart(ctx,{type:'bar',data:{labels,datasets:[{type:'bar',label:'Production',data:prod,backgroundColor:prod.map((_,i)=>i===prod.length-1?'rgba(31,191,160,0.85)':'rgba(31,191,160,0.22)'),borderColor:prod.map((_,i)=>i===prod.length-1?'#1FBFA0':'rgba(31,191,160,0.45)'),borderWidth:1,borderRadius:5,yAxisID:'y'},{type:'line',label:'Irradiance',data:irr,borderColor:'rgba(240,160,0,0.65)',backgroundColor:'transparent',borderWidth:2,pointRadius:3,pointBackgroundColor:'#F0A000',tension:.4,yAxisID:'y2'},{type:'line',label:'Avg',data:Array(prod.length).fill(Math.round(avg)),borderColor:'rgba(237,241,255,0.18)',backgroundColor:'transparent',borderWidth:1,pointRadius:0,borderDash:[4,4],yAxisID:'y'}]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(3,6,9,.95)',borderColor:'rgba(255,255,255,.08)',borderWidth:1,titleFont:{size:11},bodyFont:{size:11}}},scales:{x:{grid:{color:'rgba(255,255,255,.03)'},ticks:{font:{size:10},maxRotation:20}},y:{grid:{color:'rgba(255,255,255,.03)'},border:{dash:[3,3]},ticks:{font:{size:10},callback:v=>v>=1000?(v/1000).toFixed(0)+'k':v}},y2:{grid:{display:false},position:'right',ticks:{font:{size:10},callback:v=>v+'W'},max:1000}}}});}
-function makeIrr(hours,vals){const ctx=$('irrC').getContext('2d');if(cI)cI.destroy();const g=ctx.createLinearGradient(0,0,0,120);g.addColorStop(0,'rgba(240,160,0,.28)');g.addColorStop(1,'rgba(240,160,0,0)');cI=new Chart(ctx,{type:'line',data:{labels:hours,datasets:[{data:vals,borderColor:'#F0A000',backgroundColor:g,borderWidth:2.5,fill:true,tension:.45,pointRadius:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(3,6,9,.95)',borderColor:'rgba(255,255,255,.08)',borderWidth:1,callbacks:{label:c=>c.raw+' W/m²'}}},scales:{x:{grid:{color:'rgba(255,255,255,.03)'},ticks:{font:{size:10},maxTicksLimit:8}},y:{grid:{color:'rgba(255,255,255,.03)'},min:0,border:{dash:[3,3]},ticks:{font:{size:10}}}}}});}
+function makeCombo(labels,prod){
+  const ctx=$('comboC').getContext('2d');if(cC)cC.destroy();
+  const avg=prod.length?prod.reduce((a,b)=>a+b,0)/prod.length:0;
+  const today=prod[prod.length-1]||0;
+  const badge=$('avgBadge');
+  if(avg>0){const pct=Math.round((today-avg)/avg*100);badge.textContent=(pct>=0?'↑ ':'↓ ')+Math.abs(pct)+'% vs avg';badge.className='cp-badge '+(pct>=0?'above':'below');}
+  cC=new Chart(ctx,{type:'bar',data:{labels,datasets:[
+    {data:prod,backgroundColor:prod.map((_,i)=>i===prod.length-1?'rgba(31,191,160,0.88)':'rgba(31,191,160,0.25)'),borderColor:prod.map((_,i)=>i===prod.length-1?'#1FBFA0':'rgba(31,191,160,0.5)'),borderWidth:1,borderRadius:6},
+    {type:'line',data:Array(prod.length).fill(Math.round(avg)),borderColor:'rgba(237,241,255,0.2)',backgroundColor:'transparent',borderWidth:1.5,pointRadius:0,borderDash:[4,4]}
+  ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+    plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(3,6,9,.95)',borderColor:'rgba(255,255,255,.08)',borderWidth:1,titleFont:{size:12},bodyFont:{size:12},callbacks:{label:c=>{const v=c.raw;return c.datasetIndex===0?(v>=1000?(v/1000).toFixed(2)+' MWh':Math.round(v)+' kWh'):'Avg: '+(v>=1000?(v/1000).toFixed(2)+' MWh':Math.round(v)+' kWh');}}}},
+    scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{font:{size:11},maxRotation:20}},
+      y:{grid:{color:'rgba(255,255,255,.04)'},border:{dash:[3,3]},ticks:{font:{size:11},callback:v=>v>=1000?(v/1000).toFixed(0)+'k':v}}}}});
+}
+function makeIrrForecast(labels,vals){
+  const ctx=$('irrC').getContext('2d');if(cI)cI.destroy();
+  const g=ctx.createLinearGradient(0,0,0,140);
+  g.addColorStop(0,'rgba(240,160,0,0.55)');g.addColorStop(1,'rgba(240,160,0,0.08)');
+  cI=new Chart(ctx,{type:'bar',data:{labels,datasets:[{data:vals,backgroundColor:g,borderColor:'rgba(240,160,0,0.8)',borderWidth:1,borderRadius:5}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(3,6,9,.95)',borderColor:'rgba(255,255,255,.08)',borderWidth:1,titleFont:{size:12},bodyFont:{size:12},callbacks:{label:c=>c.raw+' W/m² avg'}}},
+      scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{font:{size:11},maxRotation:20}},
+        y:{grid:{color:'rgba(255,255,255,.04)'},min:0,border:{dash:[3,3]},ticks:{font:{size:11}}}}}});
+}
 let wxCache={irr:0,cloud:0,elev:40};
-async function fetchWx(){try{const r=await fetch('https://api.open-meteo.com/v1/forecast?latitude=34.6612&longitude=-106.7747&current=direct_radiation&hourly=direct_radiation&timezone=America%2FDenver&forecast_days=1');const d=await r.json();const irr=Math.round(d.current?.direct_radiation||0);wxCache.irr=irr;const hrs=d.hourly.time.map(t=>{const h=parseInt(t.split('T')[1]);return h===0?'12a':h<12?h+'a':h===12?'12p':(h-12)+'p';});makeIrr(hrs,d.hourly.direct_radiation.map(v=>Math.round(v||0)));}catch(e){}}
-function applyWeather(wx){if(!wx)return;const tmp=wx.tempF||'—';const cond=wx.condition||'';const wind=wx.windSpeed||0;$('wxTmp').textContent=tmp+'°';$('wxTmpNote').textContent=cond+(wind?' · '+wind+' mph':'');const cl=cond.toLowerCase();const cld=cl.includes('clear')||cl.includes('sun')?5:cl.includes('partly')||cl.includes('few')?40:cl.includes('cloud')||cl.includes('overcast')?85:20;$('wxCld').textContent=cld+'%';$('wxCldNote').textContent=cld<20?'Clear sky — ideal solar':cld<50?'Partly cloudy':'Heavy cloud — reducing output';wxCache.cloud=cld;const elev=wxCache.elev||40;const irr=wxCache.irr||Math.round(Math.max(0,1000*Math.sin(elev*Math.PI/180))*(100-cld)/100);$('wxIrr').textContent=irr;$('wxIrrBar').style.width=Math.min(100,irr/10)+'%';$('irrSide').textContent=irr;$('irrSideBar').style.width=Math.min(100,irr/10)+'%';$('irrSideNote').textContent=cond;}
+async function fetchWx(){
+  try{
+    const r=await fetch('https://api.open-meteo.com/v1/forecast?latitude=34.6612&longitude=-106.7747&current=direct_radiation&daily=shortwave_radiation_sum&timezone=America%2FDenver&forecast_days=7');
+    const d=await r.json();
+    wxCache.irr=Math.round(d.current?.direct_radiation||0);
+    if(d.daily){
+      const lbl=d.daily.time.map(t=>{const dt=new Date(t+'T12:00:00');return dt.toLocaleDateString('en-US',{weekday:'short',month:'numeric',day:'numeric'});});
+      const vals=d.daily.shortwave_radiation_sum.map(v=>Math.round((v||0)*1000000/3600/12));
+      makeIrrForecast(lbl,vals);
+    }
+  }catch(e){console.error('wx',e);}
+}
+function applyWeather(wx){
+  if(!wx)return;
+  const tmp=wx.tempF||'—';const cond=wx.condition||'';const wind=wx.windSpeed||0;
+  $('wxTmp').textContent=tmp+'°';$('wxTmpNote').textContent=cond+(wind?' · '+wind+' mph':'');
+  const cl=cond.toLowerCase();
+  const cld=cl.includes('clear')||cl.includes('sun')?5:cl.includes('partly')||cl.includes('few')?40:cl.includes('cloud')||cl.includes('overcast')?85:20;
+  $('wxCld').textContent=cld+'%';$('wxCldNote').textContent=cld<20?'Clear sky — ideal solar':cld<50?'Partly cloudy':'Heavy cloud — reducing output';
+  wxCache.cloud=cld;
+  const elev=wxCache.elev||40;
+  const irr=wxCache.irr||Math.round(Math.max(0,1000*Math.sin(elev*Math.PI/180))*(100-cld)/100);
+  $('wxIrr').textContent=irr;$('wxIrrBar').style.width=Math.min(100,irr/10)+'%';
+  $('irrSide').textContent=irr;$('irrSideBar').style.width=Math.min(100,irr/10)+'%';$('irrSideNote').textContent=cond;
+}
 let stories=[],si=0;
-function buildStories(d){const kw=parseFloat(d.currentKW)||0,tK=toKwh(d.todayKWh?.value,d.todayKWh?.unit),yK=toKwh(d.yesterdayKWh?.value,d.yesterdayKWh?.unit),l3=toKwh(d.last30Days?.value,d.last30Days?.unit),co2=parseFloat(d.co2OffsetTons30d)||0,nowH=new Date().getHours();const s=[];if(kw>0){s.push({t:`Right now, powering <span class="s-big">${homes(kw*0.5).toLocaleString()}</span> homes`,n:'from sunlight striking a field in Belen, New Mexico'});s.push({t:`<span class="s-big">${kw}</span> kilowatts — the equivalent of <span class="s-big">${Math.round(kw*10).toLocaleString()}</span> laptops running at once`,n:'zero fuel · zero exhaust · complete silence'});if(wxCache.cloud>50)s.push({t:`Cloud cover is limiting output right now`,n:`${wxCache.cloud}% cloud cover is reducing available sunlight`});else if(nowH>=10&&nowH<=14)s.push({t:`Solar output is near its daily peak`,n:'the sun is high — irradiance is strongest between 10am and 2pm'});else if(nowH<10)s.push({t:`Production is increasing as the sun rises`,n:'output will continue climbing through solar noon'});else s.push({t:`Production is decreasing as the sun sets`,n:'output will taper off toward sunset'});}if(tK>0&&yK>0){const pct=Math.round((tK-yK)/yK*100);s.push({t:`Today is <span class="s-big">${Math.abs(pct)}%</span> ${pct>=0?'ahead of':'behind'} yesterday`,n:pct>=0?'strong production day':'cloud cover or weather may be a factor'});}if(tK>0)s.push({t:`<span class="s-big">${d.todayKWh.value}</span> <span style="font-size:1rem;color:var(--t2)">${d.todayKWh.unit}</span> produced since sunrise today`,n:'clean electricity delivered to local New Mexico families'});if(l3>0)s.push({t:`<span class="s-big">${homes(l3/30).toLocaleString()}</span> homes powered every day for 30 days`,n:'continuous clean energy from a single solar field'});if(co2>0)s.push({t:`<span class="s-big">${co2.toFixed(0)}</span> tons of CO₂ offset in 30 days`,n:'same as taking '+Math.round(co2/4.6)+' cars off the road for a month'});s.push({t:`Solar panels produce electricity in <strong>complete silence</strong> with no moving parts`,n:'the photoelectric effect — explained by Albert Einstein in 1905'});s.push({t:`New Mexico receives over <span class="s-big">300</span> sunny days per year`,n:'one of the highest solar resource regions in the United States'});stories=s;buildDots();}
-function buildDots(){const c=$('sdEl');c.innerHTML='';const n=Math.min(stories.length,8);for(let i=0;i<n;i++){const d=document.createElement('div');d.className='s-dot'+(i===si%n?' on':'');c.appendChild(d);}}
+function buildStories(d){
+  const kw=parseFloat(d.currentKW)||0,tK=toKwh(d.todayKWh?.value,d.todayKWh?.unit),yK=toKwh(d.yesterdayKWh?.value,d.yesterdayKWh?.unit),l3=toKwh(d.last30Days?.value,d.last30Days?.unit),co2=parseFloat(d.co2OffsetTons30d)||0,nowH=new Date().getHours();
+  const s=[];
+  if(kw>0){s.push({t:`Right now, powering <span class="s-big">${homes(kw*0.5).toLocaleString()}</span> homes`,n:'from sunlight striking a field in Belen, New Mexico'});s.push({t:`<span class="s-big">${kw}</span> kilowatts — the equivalent of <span class="s-big">${Math.round(kw*10).toLocaleString()}</span> laptops running at once`,n:'zero fuel · zero exhaust · complete silence'});if(wxCache.cloud>50)s.push({t:`Cloud cover is limiting output right now`,n:`${wxCache.cloud}% cloud cover is reducing available sunlight`});else if(nowH>=10&&nowH<=14)s.push({t:`Solar output is near its daily peak`,n:'the sun is high — irradiance is strongest between 10am and 2pm'});else if(nowH<10)s.push({t:`Production is increasing as the sun rises`,n:'output will continue climbing through solar noon'});else s.push({t:`Production is decreasing as the sun sets`,n:'output will taper off toward sunset'});}
+  if(tK>0&&yK>0){const pct=Math.round((tK-yK)/yK*100);s.push({t:`Today is <span class="s-big">${Math.abs(pct)}%</span> ${pct>=0?'ahead of':'behind'} yesterday`,n:pct>=0?'strong production day':'cloud cover or weather may be a factor'});}
+  if(tK>0)s.push({t:`<span class="s-big">${d.todayKWh.value}</span> <span style="font-size:1rem;color:var(--t2)">${d.todayKWh.unit}</span> produced since sunrise today`,n:'clean electricity delivered to local New Mexico families'});
+  if(l3>0)s.push({t:`<span class="s-big">${homes(l3/30).toLocaleString()}</span> homes powered every day for 30 days`,n:'continuous clean energy from a single solar field'});
+  if(co2>0)s.push({t:`<span class="s-big">${co2.toFixed(0)}</span> tons of CO₂ offset in 30 days`,n:'same as taking '+Math.round(co2/4.6)+' cars off the road for a month'});
+  s.push({t:`Solar panels produce electricity in <strong>complete silence</strong> with no moving parts`,n:'the photoelectric effect — explained by Albert Einstein in 1905'});
+  s.push({t:`New Mexico receives over <span class="s-big">300</span> sunny days per year`,n:'one of the highest solar resource regions in the United States'});
+  stories=s;buildDots();
+}
+function buildDots(){const c=$('sdEl');c.innerHTML='';const n=Math.min(stories.length,8);for(let i=0;i<n;i++){const el=document.createElement('div');el.className='s-dot'+(i===si%n?' on':'');c.appendChild(el);}}
 function showStory(){if(!stories.length)return;const st=stories[si%stories.length];const el=$('stEl'),ne=$('snEl');el.style.opacity='0';ne.style.opacity='0';setTimeout(()=>{el.innerHTML=st.t;ne.textContent=st.n||'';el.style.opacity='1';ne.style.opacity='1';buildDots();si++;},520);}
 let insights=[],ii=0;
 function buildInsights(d){const kw=parseFloat(d.currentKW)||0;insights=[kw>0?`Producing <strong>${kw} kW</strong> right now — powering approximately <strong>${homes(kw*0.5).toLocaleString()} homes</strong> in the Belen community`:'Solar production follows the sun — output rises at dawn, peaks at noon, and tapers at dusk','Solar panels convert light directly into electricity via the photoelectric effect — no combustion, no emissions, no moving parts','This community solar project shares clean energy with local families and businesses through the <strong>PNM grid</strong>','One hour of sunlight reaching Earth carries more energy than all of humanity uses in <strong>an entire year</strong>'];}
 function showInsight(){if(!insights.length)return;const el=$('btmEl');el.style.animation='none';void el.offsetHeight;el.style.animation='fadeUp .5s ease';el.innerHTML=insights[ii%insights.length];ii++;}
-async function fetchData(){try{const[dr,hr]=await Promise.all([fetch('/data.json?t='+Date.now()),fetch('/history.json?t='+Date.now())]);const d=await dr.json();let hist=[];try{hist=await hr.json();}catch(e){}if(d.status!=='ok')return;const kw=parseFloat(d.currentKW)||0;$('kwEl').textContent=d.currentKW||'—';const cp=Math.min(1,kw/4975);setRing(cp);$('capEl').textContent=(cp*100).toFixed(1)+'% capacity';if(kw>0)$('homesEl').textContent='≈ '+homes(kw*0.5).toLocaleString()+' homes';const sp=(n,u,s,o,fn)=>{if(!o)return;$(n).textContent=o.value;$(u).textContent=o.unit;if(s)$(s).textContent=fn(toKwh(o.value,o.unit));};sp('tdN','tdU','tdS',d.todayKWh,k=>'≈ '+homes(k).toLocaleString()+' homes');sp('ydN','ydU','ydS',d.yesterdayKWh,k=>'≈ '+homes(k).toLocaleString()+' homes');sp('l3N','l3U','l3S',d.last30Days,k=>'≈ '+homes(k/30).toLocaleString()+' homes/day');if(d.co2OffsetTons30d){$('co2N').textContent=d.co2OffsetTons30d;$('co2S').textContent='= '+Math.round(parseFloat(d.co2OffsetTons30d)*48).toLocaleString()+' trees';}if(d.scrapedAt){const t=new Date(d.scrapedAt);$('updEl').textContent='Updated '+t.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZoneName:'short'});}if(d.sunrise&&d.sunset){const rH=parseTimeStr(d.sunrise),sH=parseTimeStr(d.sunset);if(rH&&sH){sunCache={rise:rH,set:sH,riseStr:d.sunrise.replace(/\s*(MDT|MST)/,''),setStr:d.sunset.replace(/\s*(MDT|MST)/,'')};updateSun();}}if(d.sunElevation)wxCache.elev=d.sunElevation;if(d.weather)applyWeather(d.weather);if(hist.length>0){const rec=hist.slice(-7);const lbl=rec.map(h=>{const dt=new Date(h.date+'T12:00:00');return dt.toLocaleDateString('en-US',{weekday:'short',month:'numeric',day:'numeric'});});const pv=rec.map(h=>h.kwhProduced);const iv=pv.map(v=>Math.round(Math.min(900,v/(4975*7)*900)));makeCombo(lbl,pv,iv);}buildStories(d);buildInsights(d);}catch(e){console.error(e);}}
+async function fetchData(){
+  try{
+    const[dr,hr]=await Promise.all([fetch('/data.json?t='+Date.now()),fetch('/history.json?t='+Date.now())]);
+    const d=await dr.json();let hist=[];try{hist=await hr.json();}catch(e){}
+    if(d.status!=='ok')return;
+    const kw=parseFloat(d.currentKW)||0;
+    $('kwEl').textContent=d.currentKW||'—';
+    const cp=Math.min(1,kw/4975);setRing(cp);
+    $('capEl').textContent=(cp*100).toFixed(1)+'% capacity';
+    if(kw>0)$('homesEl').textContent='≈ '+homes(kw*0.5).toLocaleString()+' homes';
+    const sp=(n,u,s,o,fn)=>{if(!o)return;$(n).textContent=o.value;$(u).textContent=o.unit;if(s)$(s).textContent=fn(toKwh(o.value,o.unit));};
+    sp('tdN','tdU','tdS',d.todayKWh,k=>'≈ '+homes(k).toLocaleString()+' homes');
+    sp('ydN','ydU','ydS',d.yesterdayKWh,k=>'≈ '+homes(k).toLocaleString()+' homes');
+    sp('l3N','l3U','l3S',d.last30Days,k=>'≈ '+homes(k/30).toLocaleString()+' homes/day');
+    if(d.co2OffsetTons30d){$('co2N').textContent=d.co2OffsetTons30d;$('co2S').textContent='= '+Math.round(parseFloat(d.co2OffsetTons30d)*48).toLocaleString()+' trees';}
+    if(d.scrapedAt){const t=new Date(d.scrapedAt);$('updEl').textContent='Updated '+t.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZoneName:'short'});}
+    if(d.sunrise&&d.sunset){const rH=parseTimeStr(d.sunrise),sH=parseTimeStr(d.sunset);if(rH&&sH){sunCache={rise:rH,set:sH,riseStr:d.sunrise.replace(/\s*(MDT|MST)\s*/g,'').trim(),setStr:d.sunset.replace(/\s*(MDT|MST)\s*/g,'').trim()};updateSun();}}
+    if(d.sunElevation)wxCache.elev=d.sunElevation;
+    if(d.weather)applyWeather(d.weather);
+    if(hist.length>0){const rec=hist.slice(-7);const lbl=rec.map(h=>{const dt=new Date(h.date+'T12:00:00');return dt.toLocaleDateString('en-US',{weekday:'short',month:'numeric',day:'numeric'});});makeCombo(lbl,rec.map(h=>h.kwhProduced));}
+    buildStories(d);buildInsights(d);
+  }catch(e){console.error(e);}
+}
 fetchData();fetchWx();
-setInterval(fetchData,5*60*1000);setInterval(fetchWx,15*60*1000);
+setInterval(fetchData,5*60*1000);setInterval(fetchWx,60*60*1000);
 showStory();setInterval(showStory,14*1000);
 showInsight();setInterval(showInsight,18*1000);
 </script>
