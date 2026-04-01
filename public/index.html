@@ -1,312 +1,463 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cuidando Los Niños Community Solar</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --sun: #FFB800;
-      --sun-glow: #FF8C00;
-      --sky: #0A1628;
-      --sky-mid: #0D2545;
-      --sky-light: #1A3A6B;
-      --green: #00E676;
-      --white: #F0F4FF;
-      --muted: #5A7AAF;
-    }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      background: var(--sky);
-      color: var(--white);
-      font-family: 'DM Sans', sans-serif;
-      min-height: 100vh;
-      overflow: hidden;
-      position: relative;
-    }
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background:
-        radial-gradient(ellipse 80% 50% at 50% -10%, rgba(255,184,0,0.15) 0%, transparent 60%),
-        linear-gradient(180deg, #0A1628 0%, #0D2545 50%, #0A1628 100%);
-      z-index: 0;
-    }
-    .wrapper {
-      position: relative;
-      z-index: 1;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      padding: 28px 36px 20px;
-    }
-    header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 28px;
-      animation: fadeDown 0.8s ease both;
-    }
-    .logo-area { display: flex; align-items: center; gap: 16px; }
-    .sun-icon { width: 52px; height: 52px; position: relative; flex-shrink: 0; }
-    .sun-core {
-      width: 28px; height: 28px;
-      background: var(--sun);
-      border-radius: 50%;
-      position: absolute; top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      box-shadow: 0 0 20px var(--sun), 0 0 40px rgba(255,184,0,0.4);
-      animation: pulse 3s ease-in-out infinite;
-    }
-    .sun-rays { position: absolute; inset: 0; animation: rotateSun 20s linear infinite; }
-    .sun-rays::before, .sun-rays::after {
-      content: ''; position: absolute;
-      background: var(--sun); border-radius: 2px; opacity: 0.6;
-    }
-    .sun-rays::before { width: 2px; height: 52px; top: 0; left: 50%; transform: translateX(-50%); box-shadow: 18px 0 0 var(--sun), -18px 0 0 var(--sun); }
-    .sun-rays::after { width: 52px; height: 2px; top: 50%; left: 0; transform: translateY(-50%); box-shadow: 0 18px 0 var(--sun), 0 -18px 0 var(--sun); }
-    .site-title h1 {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 2.2rem;
-      letter-spacing: 3px;
-      color: var(--white);
-      line-height: 1;
-    }
-    .site-title p {
-      font-size: 0.75rem;
-      color: var(--muted);
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      margin-top: 3px;
-    }
-    .header-right { text-align: right; }
-    .live-badge {
-      display: inline-flex; align-items: center; gap: 6px;
-      background: rgba(0,230,118,0.1);
-      border: 1px solid rgba(0,230,118,0.3);
-      border-radius: 20px; padding: 5px 12px;
-      font-size: 0.72rem; letter-spacing: 2px;
-      text-transform: uppercase; color: var(--green);
-      margin-bottom: 6px;
-    }
-    .live-dot { width: 6px; height: 6px; background: var(--green); border-radius: 50%; animation: blink 2s ease-in-out infinite; }
-    .last-updated { font-size: 0.72rem; color: var(--muted); }
-    .hero { text-align: center; margin-bottom: 32px; animation: fadeUp 0.8s 0.2s ease both; }
-    .hero-label { font-size: 0.75rem; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
-    .hero-value {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: clamp(5rem, 14vw, 10rem);
-      line-height: 0.9;
-      color: var(--sun);
-      text-shadow: 0 0 60px rgba(255,184,0,0.4), 0 0 120px rgba(255,184,0,0.15);
-      letter-spacing: 4px;
-    }
-    .hero-unit {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: clamp(2rem, 4vw, 3.5rem);
-      color: rgba(255,184,0,0.6);
-      letter-spacing: 3px; margin-left: 8px;
-    }
-    .hero-sub { font-size: 0.8rem; color: var(--muted); margin-top: 6px; letter-spacing: 1px; }
-    .stats {
-      display: grid; grid-template-columns: repeat(4, 1fr);
-      gap: 16px; margin-bottom: 20px;
-    }
-    .stat-card {
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 16px; padding: 20px 18px;
-      position: relative; overflow: hidden;
-      animation: fadeUp 0.8s ease both;
-    }
-    .stat-card::before {
-      content: ''; position: absolute;
-      top: 0; left: 0; right: 0; height: 2px;
-      background: linear-gradient(90deg, transparent, var(--accent, var(--sun)), transparent);
-      opacity: 0.6;
-    }
-    .stat-card:nth-child(1) { --accent: var(--sun); animation-delay: 0.3s; }
-    .stat-card:nth-child(2) { --accent: #40C4FF; animation-delay: 0.4s; }
-    .stat-card:nth-child(3) { --accent: var(--green); animation-delay: 0.5s; }
-    .stat-card:nth-child(4) { --accent: #CE93D8; animation-delay: 0.6s; }
-    .stat-label { font-size: 0.68rem; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
-    .stat-value { font-family: 'Bebas Neue', sans-serif; font-size: clamp(1.8rem, 3.5vw, 2.8rem); color: var(--white); letter-spacing: 2px; line-height: 1; }
-    .stat-unit { font-size: 0.75rem; color: var(--muted); margin-left: 4px; font-family: 'DM Sans', sans-serif; font-weight: 300; }
-    .stat-icon { position: absolute; top: 18px; right: 18px; font-size: 1.3rem; opacity: 0.3; }
-    .bottom-bar {
-      display: flex; align-items: center; justify-content: space-between;
-      padding-top: 16px;
-      border-top: 1px solid rgba(255,255,255,0.06);
-      animation: fadeUp 0.8s 0.7s ease both;
-    }
-    .pv-spec { font-size: 0.72rem; color: var(--muted); letter-spacing: 1px; }
-    .pv-spec span { color: rgba(255,255,255,0.5); }
-    .co2-callout {
-      display: flex; align-items: center; gap: 10px;
-      background: rgba(0,230,118,0.07);
-      border: 1px solid rgba(0,230,118,0.15);
-      border-radius: 12px; padding: 10px 18px;
-    }
-    .co2-callout .leaf { font-size: 1.3rem; }
-    .co2-text { font-size: 0.72rem; color: var(--muted); letter-spacing: 1px; line-height: 1.5; }
-    .co2-text strong { display: block; color: var(--green); font-size: 1rem; font-family: 'Bebas Neue', sans-serif; letter-spacing: 2px; }
-    .powered-by { font-size: 0.68rem; color: var(--muted); text-align: right; letter-spacing: 1px; line-height: 1.8; }
-    .powered-by strong { color: rgba(255,255,255,0.4); display: block; }
-    .loading-overlay {
-      position: fixed; inset: 0; background: var(--sky);
-      display: flex; align-items: center; justify-content: center;
-      z-index: 100; flex-direction: column; gap: 16px;
-      transition: opacity 0.5s;
-    }
-    .loading-overlay.hidden { opacity: 0; pointer-events: none; }
-    .loading-spinner {
-      width: 48px; height: 48px;
-      border: 3px solid rgba(255,184,0,0.2);
-      border-top-color: var(--sun);
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
-    .loading-text { font-family: 'Bebas Neue', sans-serif; font-size: 1.2rem; letter-spacing: 3px; color: var(--muted); }
-    @keyframes fadeDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
-    @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-    @keyframes pulse { 0%, 100% { box-shadow: 0 0 20px var(--sun), 0 0 40px rgba(255,184,0,0.4); } 50% { box-shadow: 0 0 30px var(--sun), 0 0 60px rgba(255,184,0,0.6); } }
-    @keyframes rotateSun { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-    @keyframes spin { to { transform: rotate(360deg); } }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cuidando Los Niños Community Solar</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#060e1f;color:#f0f4ff;font-family:'Nunito',sans-serif}
+.bg{position:fixed;inset:0;background:radial-gradient(ellipse 120% 55% at 50% -5%,rgba(255,184,0,.18) 0%,transparent 60%),linear-gradient(180deg,#060e1f 0%,#0a1a38 55%,#060e1f 100%)}
+.stars{position:fixed;inset:0;background-image:radial-gradient(1.5px 1.5px at 8% 12%,rgba(255,255,255,.55),transparent),radial-gradient(1px 1px at 22% 7%,rgba(255,255,255,.4),transparent),radial-gradient(1.5px 1.5px at 55% 10%,rgba(255,255,255,.5),transparent),radial-gradient(1px 1px at 78% 5%,rgba(255,255,255,.35),transparent),radial-gradient(1px 1px at 91% 18%,rgba(255,255,255,.45),transparent),radial-gradient(2px 2px at 38% 3%,rgba(255,255,255,.3),transparent),radial-gradient(1px 1px at 68% 16%,rgba(255,255,255,.4),transparent)}
+.grid{position:relative;z-index:1;display:grid;grid-template-rows:56px 1fr 44px;grid-template-columns:1fr 1.4fr 1fr;height:100vh;gap:0;padding:12px 16px 10px;column-gap:14px;row-gap:10px}
+
+/* HEADER spans full width */
+header{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between}
+.logo{display:flex;align-items:center;gap:12px}
+.sun-svg{width:44px;height:44px;flex-shrink:0;animation:spinSun 18s linear infinite}
+.title h1{font-family:'Bebas Neue',sans-serif;font-size:1.75rem;letter-spacing:3px;line-height:1}
+.title p{font-size:.68rem;color:#4a6a9f;letter-spacing:2px;text-transform:uppercase;margin-top:2px}
+.hdr-right{display:flex;align-items:center;gap:16px}
+.live-pill{display:inline-flex;align-items:center;gap:6px;background:rgba(0,230,118,.1);border:1px solid rgba(0,230,118,.3);border-radius:20px;padding:4px 12px;font-size:.68rem;letter-spacing:2px;text-transform:uppercase;color:#00e676}
+.dot{width:6px;height:6px;background:#00e676;border-radius:50%;animation:blink 2s infinite}
+.time-block{text-align:right}
+.time-big{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:2px;line-height:1}
+.time-date{font-size:.65rem;color:#4a6a9f;letter-spacing:1px}
+
+/* TICKER spans full width at bottom */
+.ticker{grid-column:1/-1;background:rgba(255,184,0,.07);border:1px solid rgba(255,184,0,.18);border-radius:10px;display:flex;align-items:center;gap:12px;padding:0 16px;overflow:hidden}
+.ticker-lbl{font-size:.62rem;letter-spacing:2px;text-transform:uppercase;color:#FFB800;white-space:nowrap;display:flex;align-items:center;gap:6px;flex-shrink:0}
+.ticker-txt{font-size:.82rem;color:rgba(255,255,255,.75);font-weight:700;animation:fadeUp .5s ease}
+
+/* LEFT COLUMN */
+.left{display:flex;flex-direction:column;gap:10px}
+
+.hero-card{flex:1;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:18px;padding:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;position:relative;overflow:hidden}
+.hero-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,#FFB800,transparent)}
+.hero-lbl{font-size:.65rem;letter-spacing:3px;text-transform:uppercase;color:#4a6a9f;margin-bottom:4px}
+.hero-num{font-family:'Bebas Neue',sans-serif;font-size:clamp(3.5rem,7vw,6rem);line-height:.9;color:#FFB800;text-shadow:0 0 60px rgba(255,184,0,.4);letter-spacing:3px;animation:glow 3s ease-in-out infinite}
+.hero-unit{font-family:'Bebas Neue',sans-serif;font-size:clamp(1.5rem,2.5vw,2.5rem);color:rgba(255,184,0,.5);letter-spacing:2px;margin-left:6px}
+.hero-sub{font-size:.72rem;color:#4a6a9f;margin-top:6px;letter-spacing:1px}
+
+.weather-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:18px;padding:14px 16px}
+.weather-card::before{content:'';display:block;height:2px;background:linear-gradient(90deg,transparent,#40C4FF,transparent);margin:-14px -16px 10px;border-radius:18px 18px 0 0}
+.w-title{font-size:.62rem;letter-spacing:2px;text-transform:uppercase;color:#4a6a9f;margin-bottom:8px}
+.w-row{display:flex;justify-content:space-between;align-items:flex-end;gap:8px}
+.w-stat{text-align:center;flex:1}
+.w-val{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;color:#f0f4ff;letter-spacing:1px}
+.w-unit{font-size:.6rem;color:#4a6a9f;letter-spacing:1px;display:block;margin-top:1px}
+.irr-bar-wrap{margin-top:8px}
+.irr-label{font-size:.6rem;color:#4a6a9f;letter-spacing:1px;display:flex;justify-content:space-between;margin-bottom:3px}
+.irr-track{background:rgba(255,255,255,.07);border-radius:4px;height:8px;overflow:hidden}
+.irr-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#FFB800,#fff3a0);transition:width 1.5s ease}
+</style>
+
+/* CENTER COLUMN */
+.center{display:flex;flex-direction:column;gap:10px}
+.chart-card{flex:1;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:18px;padding:14px 16px;display:flex;flex-direction:column}
+.chart-card::before{content:'';display:block;height:2px;background:linear-gradient(90deg,transparent,#00E676,transparent);margin:-14px -16px 10px;border-radius:18px 18px 0 0}
+.chart-title{font-size:.62rem;letter-spacing:2px;text-transform:uppercase;color:#4a6a9f;margin-bottom:8px}
+.chart-wrap{flex:1;position:relative;min-height:0}
+
+.irr-chart-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:18px;padding:14px 16px;display:flex;flex-direction:column}
+.irr-chart-card::before{content:'';display:block;height:2px;background:linear-gradient(90deg,transparent,#FFB800,transparent);margin:-14px -16px 10px;border-radius:18px 18px 0 0}
+
+/* RIGHT COLUMN */
+.right{display:flex;flex-direction:column;gap:10px}
+.stat-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:18px;padding:14px 16px;position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--c),transparent)}
+.sc1{--c:#FFB800}.sc2{--c:#40C4FF}.sc3{--c:#00E676}.sc4{--c:#CE93D8}
+.s-lbl{font-size:.6rem;letter-spacing:2px;text-transform:uppercase;color:#4a6a9f;margin-bottom:4px;display:flex;align-items:center;gap:6px}
+.s-val{font-family:'Bebas Neue',sans-serif;font-size:clamp(1.6rem,2.8vw,2.4rem);letter-spacing:2px;line-height:1}
+.s-unit{font-size:.68rem;color:#4a6a9f;font-weight:400;margin-left:3px}
+.s-equiv{font-size:.6rem;color:rgba(255,255,255,.3);margin-top:3px;font-style:italic}
+
+.co2-card{background:rgba(0,230,118,.06);border:1px solid rgba(0,230,118,.18);border-radius:18px;padding:14px 16px}
+.co2-top{display:flex;align-items:baseline;gap:6px}
+.co2-num{font-family:'Bebas Neue',sans-serif;font-size:2rem;color:#00E676;letter-spacing:2px}
+.co2-lbl{font-size:.6rem;color:#4a6a9f;letter-spacing:1px;line-height:1.5;margin-top:2px}
+.trees-row{display:flex;align-items:center;gap:6px;margin-top:6px}
+.tree-icon{font-size:.9rem}
+.trees-txt{font-size:.65rem;color:rgba(0,230,118,.7);font-weight:700}
+
+.credit-row{display:flex;align-items:center;justify-content:space-between;padding:2px 0}
+.credit-txt{font-size:.62rem;color:#4a6a9f;letter-spacing:1px;line-height:1.7}
+.credit-txt strong{color:rgba(255,255,255,.3);display:block}
+.sys-spec{font-size:.6rem;color:#4a6a9f}
+
+/* ANIMATIONS */
+@keyframes spinSun{to{transform:rotate(360deg)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes glow{0%,100%{text-shadow:0 0 60px rgba(255,184,0,.4)}50%{text-shadow:0 0 100px rgba(255,184,0,.65)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+</style>
 </head>
 <body>
-  <div class="loading-overlay" id="loadingOverlay">
-    <div class="loading-spinner"></div>
-    <div class="loading-text">Loading Solar Data</div>
-  </div>
+<div class="bg"></div>
+<div class="stars"></div>
+<div class="grid">
 
-  <div class="wrapper">
-    <header>
-      <div class="logo-area">
-        <div class="sun-icon">
-          <div class="sun-rays"></div>
-          <div class="sun-core"></div>
-        </div>
-        <div class="site-title">
-          <h1>Cuidando Los Niños Community Solar Project</h1>
-          <p>Provided by Affordable Solar Group</p>
-        </div>
-      </div>
-      <div class="header-right">
-        <div class="live-badge">
-          <div class="live-dot"></div>
-          Live Data
-        </div>
-        <div class="last-updated" id="lastUpdated">Updating...</div>
-      </div>
-    </header>
-
-    <div class="hero">
-      <div class="hero-label">Current Solar Output</div>
-      <div>
-        <span class="hero-value" id="currentKW">—</span>
-        <span class="hero-unit">kW</span>
-      </div>
-      <div class="hero-sub" id="capacityFactor">Capacity Factor: —%</div>
-    </div>
-
-    <div class="stats">
-      <div class="stat-card">
-        <div class="stat-icon">☀️</div>
-        <div class="stat-label">Today's Production</div>
-        <div>
-          <span class="stat-value" id="todayVal">—</span>
-          <span class="stat-unit" id="todayUnit">kWh</span>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon">📅</div>
-        <div class="stat-label">Yesterday</div>
-        <div>
-          <span class="stat-value" id="yesterdayVal">—</span>
-          <span class="stat-unit" id="yesterdayUnit">MWh</span>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon">📆</div>
-        <div class="stat-label">Last 30 Days</div>
-        <div>
-          <span class="stat-value" id="last30Val">—</span>
-          <span class="stat-unit" id="last30Unit">GWh</span>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon">⚡</div>
-        <div class="stat-label">System Capacity</div>
-        <div>
-          <span class="stat-value" id="pvSize">4,975</span>
-          <span class="stat-unit">kW AC</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="bottom-bar">
-      <div class="pv-spec">
-        System Size: <span id="pvAC">4,975</span> kW AC &nbsp;/&nbsp; <span id="pvDC">6,499</span> kW DC
-      </div>
-      <div class="co2-callout">
-        <div class="leaf">🌱</div>
-        <div class="co2-text">
-          <strong id="co2Val">—</strong>
-          metric tons CO₂ offset (30d)
-        </div>
-      </div>
-      <div class="powered-by">
-        <strong>Affordable Solar Group</strong>
-        Community Solar · PNM Program
-      </div>
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <svg class="sun-svg" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="22" cy="22" r="9" fill="#FFB800" opacity="0.95"/>
+      <line x1="22" y1="2" x2="22" y2="10" stroke="#FFB800" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
+      <line x1="22" y1="34" x2="22" y2="42" stroke="#FFB800" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
+      <line x1="2" y1="22" x2="10" y2="22" stroke="#FFB800" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
+      <line x1="34" y1="22" x2="42" y2="22" stroke="#FFB800" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
+      <line x1="7.5" y1="7.5" x2="13.5" y2="13.5" stroke="#FFB800" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+      <line x1="30.5" y1="30.5" x2="36.5" y2="36.5" stroke="#FFB800" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+      <line x1="36.5" y1="7.5" x2="30.5" y2="13.5" stroke="#FFB800" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+      <line x1="13.5" y1="30.5" x2="7.5" y2="36.5" stroke="#FFB800" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+    </svg>
+    <div class="title">
+      <h1>Cuidando Los Niños Community Solar Project</h1>
+      <p>Provided by Affordable Solar Group · Belen, NM</p>
     </div>
   </div>
+  <div class="hdr-right">
+    <div class="live-pill"><div class="dot"></div>Live Data</div>
+    <div class="time-block">
+      <div class="time-big" id="clock">--:--</div>
+      <div class="time-date" id="dateStr">Loading...</div>
+    </div>
+  </div>
+</header>
 
-  <script>
-    async function fetchData() {
-      try {
-        const res = await fetch('/data.json?t=' + Date.now());
-        const d = await res.json();
+<!-- LEFT COLUMN -->
+<div class="left">
+  <div class="hero-card">
+    <div class="hero-lbl">Current Solar Output</div>
+    <div>
+      <span class="hero-num" id="currentKW">—</span>
+      <span class="hero-unit">kW</span>
+    </div>
+    <div class="hero-sub" id="capFactor">Capacity Factor: —%</div>
+    <div class="hero-sub" id="homesPowered" style="margin-top:4px;color:rgba(255,184,0,.6);font-weight:700"></div>
+  </div>
 
-        if (d.status !== 'ok') return;
+  <div class="weather-card">
+    <div class="w-title">☀️ Weather & Solar Irradiance · Belen, NM</div>
+    <div class="w-row">
+      <div class="w-stat">
+        <div class="w-val" id="wTemp">—</div>
+        <span class="w-unit">Temp °F</span>
+      </div>
+      <div class="w-stat">
+        <div class="w-val" id="wCloud">—</div>
+        <span class="w-unit">Cloud Cover %</span>
+      </div>
+      <div class="w-stat">
+        <div class="w-val" id="wIrr">—</div>
+        <span class="w-unit">W/m² (Direct)</span>
+      </div>
+      <div class="w-stat">
+        <div class="w-val" id="wWind">—</div>
+        <span class="w-unit">Wind mph</span>
+      </div>
+    </div>
+    <div class="irr-bar-wrap">
+      <div class="irr-label">
+        <span>Solar Irradiance</span>
+        <span id="irrPct">0%</span>
+      </div>
+      <div class="irr-track"><div class="irr-fill" id="irrFill" style="width:0%"></div></div>
+    </div>
+  </div>
+</div>
 
-        document.getElementById('loadingOverlay').classList.add('hidden');
-        document.getElementById('currentKW').textContent = d.currentKW || '—';
-        document.getElementById('capacityFactor').textContent = d.capacityFactor ? `Capacity Factor: ${d.capacityFactor}%` : '';
+<!-- CENTER COLUMN -->
+<div class="center">
+  <div class="chart-card">
+    <div class="chart-title">📊 7-Day Production History</div>
+    <div class="chart-wrap">
+      <canvas id="prodChart"></canvas>
+    </div>
+  </div>
+  <div class="irr-chart-card">
+    <div class="chart-title">☀️ Today's Solar Irradiance Forecast (W/m²)</div>
+    <div class="chart-wrap" style="height:100px">
+      <canvas id="irrChart"></canvas>
+    </div>
+  </div>
+</div>
 
-        if (d.todayKWh) {
-          document.getElementById('todayVal').textContent = d.todayKWh.value;
-          document.getElementById('todayUnit').textContent = d.todayKWh.unit;
-        }
-        if (d.yesterdayKWh) {
-          document.getElementById('yesterdayVal').textContent = d.yesterdayKWh.value;
-          document.getElementById('yesterdayUnit').textContent = d.yesterdayKWh.unit;
-        }
-        if (d.last30Days) {
-          document.getElementById('last30Val').textContent = d.last30Days.value;
-          document.getElementById('last30Unit').textContent = d.last30Days.unit;
-        }
-        if (d.pvSizeAC) { document.getElementById('pvSize').textContent = d.pvSizeAC; document.getElementById('pvAC').textContent = d.pvSizeAC; }
-        if (d.pvSizeDC) document.getElementById('pvDC').textContent = d.pvSizeDC;
-        if (d.co2OffsetTons30d) document.getElementById('co2Val').textContent = d.co2OffsetTons30d;
+<!-- RIGHT COLUMN -->
+<div class="right">
+  <div class="stat-card sc1">
+    <div class="s-lbl">☀️ Today's Production</div>
+    <div><span class="s-val" id="todayVal">—</span><span class="s-unit" id="todayUnit">kWh</span></div>
+    <div class="s-equiv" id="todayEquiv"></div>
+  </div>
+  <div class="stat-card sc2">
+    <div class="s-lbl">📅 Yesterday</div>
+    <div><span class="s-val" id="yestVal">—</span><span class="s-unit" id="yestUnit">MWh</span></div>
+    <div class="s-equiv" id="yestEquiv"></div>
+  </div>
+  <div class="stat-card sc3">
+    <div class="s-lbl">📆 Last 30 Days</div>
+    <div><span class="s-val" id="last30Val">—</span><span class="s-unit" id="last30Unit">GWh</span></div>
+    <div class="s-equiv" id="last30Equiv"></div>
+  </div>
+  <div class="stat-card sc4">
+    <div class="s-lbl">⚡ System Capacity</div>
+    <div><span class="s-val">4,975</span><span class="s-unit">kW AC</span></div>
+    <div class="s-equiv">6,499 kW DC · 20 Inverters</div>
+  </div>
+  <div class="co2-card">
+    <div class="s-lbl" style="font-size:.6rem;letter-spacing:2px;text-transform:uppercase;color:#4a6a9f;margin-bottom:4px">🌱 CO₂ Offset (30 days)</div>
+    <div class="co2-top">
+      <div class="co2-num" id="co2Val">—</div>
+      <div class="co2-lbl">metric tons<br>of CO₂ kept<br>out of our air</div>
+    </div>
+    <div class="trees-row">
+      <span class="tree-icon">🌳</span>
+      <span class="trees-txt" id="treesEquiv"></span>
+    </div>
+  </div>
+  <div class="credit-row">
+    <div class="sys-spec" id="updatedAt">Updated: —</div>
+    <div class="credit-txt"><strong>Affordable Solar Group</strong>Community Solar · PNM Program</div>
+  </div>
+</div>
 
-        if (d.scrapedAt) {
-          const t = new Date(d.scrapedAt);
-          document.getElementById('lastUpdated').textContent =
-            'Updated ' + t.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
-        }
-      } catch (err) {
-        document.getElementById('lastUpdated').textContent = 'Retrying...';
+<!-- TICKER -->
+<div class="ticker">
+  <div class="ticker-lbl">★ Did you know?</div>
+  <div class="ticker-txt" id="tickerTxt">Loading...</div>
+</div>
+
+</div><!-- end grid -->
+<script>
+// ── HELPERS ──────────────────────────────────────────────
+function toKwh(val, unit) {
+  if (!val || val==='—') return 0;
+  const v = parseFloat(String(val).replace(',',''));
+  if (unit==='GWh') return v*1000000;
+  if (unit==='MWh') return v*1000;
+  return v;
+}
+function fmt(n) { return n>=1000000?(n/1000000).toFixed(2)+' GWh':n>=1000?(n/1000).toFixed(1)+' MWh':Math.round(n)+' kWh'; }
+function homes(kwh){ return Math.max(1,Math.round(kwh/30)); }
+function trees(kwh){ return Math.round(kwh*0.0001); }
+function cToF(c){ return Math.round(c*9/5+32); }
+function mpsToMph(v){ return Math.round(v*2.237); }
+
+// ── CLOCK ─────────────────────────────────────────────────
+function tick(){
+  const n=new Date();
+  document.getElementById('clock').textContent=n.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+  document.getElementById('dateStr').textContent=n.toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
+}
+tick(); setInterval(tick,1000);
+
+// ── CHARTS ────────────────────────────────────────────────
+Chart.defaults.color='rgba(255,255,255,0.4)';
+Chart.defaults.font.family='Nunito';
+
+let prodChart, irrChart;
+
+function initProdChart(labels, values) {
+  const ctx = document.getElementById('prodChart').getContext('2d');
+  if (prodChart) prodChart.destroy();
+  prodChart = new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels,
+      datasets:[{
+        label:'kWh Produced',
+        data: values,
+        backgroundColor: values.map((_,i)=> i===values.length-1 ? 'rgba(255,184,0,0.9)' : 'rgba(255,184,0,0.35)'),
+        borderColor: values.map((_,i)=> i===values.length-1 ? '#FFB800' : 'rgba(255,184,0,0.5)'),
+        borderWidth:1, borderRadius:4,
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmt(c.raw)}}},
+      scales:{
+        x:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{font:{size:10}}},
+        y:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{font:{size:10},callback:v=>v>=1000?(v/1000).toFixed(0)+'k':v}}
       }
     }
+  });
+}
 
-    fetchData();
-    setInterval(fetchData, 5 * 60 * 1000);
-  </script>
+function initIrrChart(hours, vals) {
+  const ctx = document.getElementById('irrChart').getContext('2d');
+  if (irrChart) irrChart.destroy();
+  const now = new Date().getHours();
+  irrChart = new Chart(ctx, {
+    type:'line',
+    data:{
+      labels: hours,
+      datasets:[{
+        data: vals,
+        borderColor:'#FFB800', backgroundColor:'rgba(255,184,0,0.12)',
+        borderWidth:2, fill:true, tension:0.4, pointRadius:0,
+        pointHoverRadius:4,
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw+' W/m²'}}},
+      scales:{
+        x:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{font:{size:9},maxTicksLimit:8}},
+        y:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{font:{size:9}},min:0}
+      }
+    }
+  });
+}
+
+// ── WEATHER (Open-Meteo, free, no key) ───────────────────
+async function fetchWeather() {
+  try {
+    const url = 'https://api.open-meteo.com/v1/forecast?latitude=34.6612&longitude=-106.7747&current=temperature_2m,cloudcover,wind_speed_10m,direct_radiation&hourly=direct_radiation&timezone=America%2FDenver&forecast_days=1';
+    const res = await fetch(url);
+    const d = await res.json();
+    const cur = d.current;
+
+    const tempF = cToF(cur.temperature_2m);
+    const cloud = Math.round(cur.cloudcover);
+    const irr = Math.round(cur.direct_radiation||0);
+    const wind = mpsToMph(cur.wind_speed_10m);
+    const maxIrr = 1000;
+    const irrPct = Math.round(Math.min(100, irr/maxIrr*100));
+
+    document.getElementById('wTemp').textContent = tempF+'°';
+    document.getElementById('wCloud').textContent = cloud+'%';
+    document.getElementById('wIrr').textContent = irr;
+    document.getElementById('wWind').textContent = wind;
+    document.getElementById('irrFill').style.width = irrPct+'%';
+    document.getElementById('irrPct').textContent = irrPct+'%';
+
+    // Build irradiance chart from hourly data
+    const hours = d.hourly.time.map(t => {
+      const h = parseInt(t.split('T')[1]);
+      return h===0?'12am':h<12?h+'am':h===12?'12pm':(h-12)+'pm';
+    });
+    const irrVals = d.hourly.direct_radiation.map(v=>Math.round(v||0));
+    initIrrChart(hours, irrVals);
+
+  } catch(e) { console.error('Weather fetch failed:', e); }
+}
+
+// ── PRODUCTION DATA ───────────────────────────────────────
+async function fetchData() {
+  try {
+    const [dRes, hRes] = await Promise.all([
+      fetch('/data.json?t='+Date.now()),
+      fetch('/history.json?t='+Date.now())
+    ]);
+    const d = await dRes.json();
+    let history = [];
+    try { history = await hRes.json(); } catch(e) {}
+
+    if (d.status !== 'ok') return;
+
+    // Live output
+    document.getElementById('currentKW').textContent = d.currentKW||'—';
+    document.getElementById('capFactor').textContent = d.capacityFactor ? 'Capacity Factor: '+d.capacityFactor+'%' : '';
+    const kwNow = parseFloat(d.currentKW)||0;
+    if (kwNow>0) document.getElementById('homesPowered').textContent = '≈ '+homes(kwNow*0.5).toLocaleString()+' homes right now';
+
+    // Stats
+    if (d.todayKWh) {
+      document.getElementById('todayVal').textContent = d.todayKWh.value;
+      document.getElementById('todayUnit').textContent = d.todayKWh.unit;
+      const kwh = toKwh(d.todayKWh.value, d.todayKWh.unit);
+      document.getElementById('todayEquiv').textContent = '≈ '+homes(kwh).toLocaleString()+' homes for a day';
+    }
+    if (d.yesterdayKWh) {
+      document.getElementById('yestVal').textContent = d.yesterdayKWh.value;
+      document.getElementById('yestUnit').textContent = d.yesterdayKWh.unit;
+      const kwh = toKwh(d.yesterdayKWh.value, d.yesterdayKWh.unit);
+      document.getElementById('yestEquiv').textContent = '≈ '+homes(kwh).toLocaleString()+' homes for a day';
+    }
+    if (d.last30Days) {
+      document.getElementById('last30Val').textContent = d.last30Days.value;
+      document.getElementById('last30Unit').textContent = d.last30Days.unit;
+      const kwh = toKwh(d.last30Days.value, d.last30Days.unit);
+      document.getElementById('last30Equiv').textContent = '≈ '+homes(kwh/30).toLocaleString()+' homes/day avg';
+    }
+    if (d.co2OffsetTons30d) {
+      document.getElementById('co2Val').textContent = d.co2OffsetTons30d+' tons';
+      document.getElementById('treesEquiv').textContent = 'equivalent to planting '+Math.round(parseFloat(d.co2OffsetTons30d)*48).toLocaleString()+' trees!';
+    }
+    if (d.scrapedAt) {
+      const t = new Date(d.scrapedAt);
+      document.getElementById('updatedAt').textContent = 'Updated '+t.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZoneName:'short'});
+    }
+
+    // Production chart from history
+    if (history.length > 0) {
+      const recent = history.slice(-7);
+      const labels = recent.map(h => {
+        const d = new Date(h.date+'T12:00:00');
+        return d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+      });
+      const vals = recent.map(h => h.kwhProduced);
+      initProdChart(labels, vals);
+    }
+
+    buildFacts(d);
+
+  } catch(e) { console.error('Data fetch failed:', e); }
+}
+
+// ── FUN FACTS TICKER ─────────────────────────────────────
+let facts = ['Loading solar facts...'];
+let factIdx = 0;
+
+function buildFacts(d) {
+  const kwNow = parseFloat(d.currentKW)||0;
+  const todayKwh = toKwh(d.todayKWh?.value, d.todayKWh?.unit);
+  const last30Kwh = toKwh(d.last30Days?.value, d.last30Days?.unit);
+
+  const list = [];
+  if (kwNow>0) {
+    list.push('Right now this solar farm is generating '+kwNow+' kW — enough to power '+homes(kwNow*0.5).toLocaleString()+' homes at this very moment!');
+    list.push('The '+kwNow+' kW being produced right now could charge '+Math.round(kwNow*83).toLocaleString()+' smartphones simultaneously!');
+  }
+  if (todayKwh>0) {
+    list.push("Today's clean energy could power "+homes(todayKwh).toLocaleString()+' average New Mexico homes for an entire day!');
+    list.push("Today's solar output is equivalent to planting "+Math.round(todayKwh*0.0003861).toLocaleString()+' trees!');
+    list.push("Today's energy could drive an electric car "+Math.round(todayKwh*3.5).toLocaleString()+' miles — that\'s like driving from Belen to New York '+Math.round(todayKwh*3.5/1900)+' times!');
+  }
+  if (last30Kwh>0) {
+    list.push('Over 30 days, this farm powered '+homes(last30Kwh/30).toLocaleString()+' homes every single day with zero pollution!');
+    list.push('This solar project kept '+d.co2OffsetTons30d+' metric tons of CO₂ out of the air in 30 days — like taking '+Math.round(parseFloat(d.co2OffsetTons30d)/4.6)+' cars off the road!');
+  }
+  list.push('Solar panels work by knocking electrons loose with photons from sunlight — it\'s called the photoelectric effect!');
+  list.push('New Mexico gets over 300 sunny days a year — making it one of the best places for solar energy on Earth!');
+  list.push('This community solar project helps local families save money while producing 100% clean, renewable energy!');
+  list.push('The solar panels here can produce electricity for 25–30 years with almost zero maintenance!');
+  list.push('Solar energy produces zero air pollution, zero water pollution, and zero greenhouse gases while making electricity!');
+  list.push('Albert Einstein won the Nobel Prize in 1921 for explaining how solar cells work — the photoelectric effect!');
+  list.push('One hour of sunlight hitting Earth contains more energy than the entire world uses in a full year!');
+
+  facts = list;
+}
+
+function showNextFact() {
+  const el = document.getElementById('tickerTxt');
+  el.style.animation = 'none';
+  void el.offsetHeight;
+  el.style.animation = 'fadeUp .5s ease';
+  el.textContent = facts[factIdx % facts.length];
+  factIdx++;
+}
+
+// ── INIT ──────────────────────────────────────────────────
+fetchData();
+fetchWeather();
+setInterval(fetchData, 5*60*1000);
+setInterval(fetchWeather, 10*60*1000);
+showNextFact();
+setInterval(showNextFact, 9000);
+</script>
 </body>
 </html>
