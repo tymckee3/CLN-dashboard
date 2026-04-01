@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ASG 8 Solar — Live Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --sun: #FFB800;
+      --sun-glow: #FF8C00;
+      --sky: #0A1628;
+      --sky-mid: #0D2545;
+      --sky-light: #1A3A6B;
+      --green: #00E676;
+      --white: #F0F4FF;
+      --muted: #5A7AAF;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--sky);
+      color: var(--white);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Animated sky background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% -10%, rgba(255,184,0,0.15) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 20%, rgba(255,140,0,0.08) 0%, transparent 50%),
+        linear-gradient(180deg, #0A1628 0%, #0D2545 50%, #0A1628 100%);
+      z-index: 0;
+    }
+
+    /* Star field */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        radial-gradient(1px 1px at 15% 20%, rgba(255,255,255,0.4) 0%, transparent 100%),
+        radial-gradient(1px 1px at 35% 8%, rgba(255,255,255,0.3) 0%, transparent 100%),
+        radial-gradient(1px 1px at 55% 15%, rgba(255,255,255,0.35) 0%, transparent 100%),
+        radial-gradient(1px 1px at 75% 5%, rgba(255,255,255,0.25) 0%, transparent 100%),
+        radial-gradient(1px 1px at 90% 25%, rgba(255,255,255,0.3) 0%, transparent 100%),
+        radial-gradient(1px 1px at 25% 35%, rgba(255,255,255,0.2) 0%, transparent 100%),
+        radial-gradient(1px 1px at 65% 30%, rgba(255,255,255,0.25) 0%, transparent 100%);
+      z-index: 0;
+    }
+
+    .wrapper {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 28px 36px 20px;
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
+      animation: fadeDown 0.8s ease both;
+    }
+
+    .logo-area {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .sun-icon {
+      width: 52px;
+      height: 52px;
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .sun-core {
+      width: 28px;
+      height: 28px;
+      background: var(--sun);
+      border-radius: 50%;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 20px var(--sun), 0 0 40px rgba(255,184,0,0.4);
+      animation: pulse 3s ease-in-out infinite;
+    }
+
+    .sun-rays {
+      position: absolute;
+      inset: 0;
+      animation: rotateSun 20s linear infinite;
+    }
+
+    .sun-rays::before, .sun-rays::after {
+      content: '';
+      position: absolute;
+      background: var(--sun);
+      border-radius: 2px;
+      opacity: 0.6;
+    }
+
+    .sun-rays::before {
+      width: 2px; height: 52px;
+      top: 0; left: 50%;
+      transform: translateX(-50%);
+      box-shadow: 18px 0 0 var(--sun), -18px 0 0 var(--sun);
+    }
+
+    .sun-rays::after {
+      width: 52px; height: 2px;
+      top: 50%; left: 0;
+      transform: translateY(-50%);
+      box-shadow: 0 18px 0 var(--sun), 0 -18px 0 var(--sun);
+    }
+
+    .site-title h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2.6rem;
+      letter-spacing: 3px;
+      color: var(--white);
+      line-height: 1;
+    }
+
+    .site-title p {
+      font-size: 0.78rem;
+      color: var(--muted);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    .header-right {
+      text-align: right;
+    }
+
+    .live-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(0,230,118,0.1);
+      border: 1px solid rgba(0,230,118,0.3);
+      border-radius: 20px;
+      padding: 5px 12px;
+      font-size: 0.72rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--green);
+      margin-bottom: 6px;
+    }
+
+    .live-dot {
+      width: 6px;
+      height: 6px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: blink 2s ease-in-out infinite;
+    }
+
+    .last-updated {
+      font-size: 0.72rem;
+      color: var(--muted);
+    }
+
+    /* Hero stat — current power */
+    .hero {
+      text-align: center;
+      margin-bottom: 32px;
+      animation: fadeUp 0.8s 0.2s ease both;
+    }
+
+    .hero-label {
+      font-size: 0.75rem;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .hero-value {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(5rem, 14vw, 10rem);
+      line-height: 0.9;
+      color: var(--sun);
+      text-shadow: 0 0 60px rgba(255,184,0,0.4), 0 0 120px rgba(255,184,0,0.15);
+      letter-spacing: 4px;
+    }
+
+    .hero-unit {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(2rem, 4vw, 3.5rem);
+      color: rgba(255,184,0,0.6);
+      letter-spacing: 3px;
+      margin-left: 8px;
+    }
+
+    .hero-sub {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 6px;
+      letter-spacing: 1px;
+    }
+
+    /* Stats grid */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 20px 18px;
+      position: relative;
+      overflow: hidden;
+      animation: fadeUp 0.8s ease both;
+      transition: border-color 0.3s;
+    }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent, var(--sun)), transparent);
+      opacity: 0.6;
+    }
+
+    .stat-card:nth-child(1) { --accent: var(--sun); animation-delay: 0.3s; }
+    .stat-card:nth-child(2) { --accent: #40C4FF; animation-delay: 0.4s; }
+    .stat-card:nth-child(3) { --accent: var(--green); animation-delay: 0.5s; }
+    .stat-card:nth-child(4) { --accent: #CE93D8; animation-delay: 0.6s; }
+
+    .stat-label {
+      font-size: 0.68rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .stat-value {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+      color: var(--white);
+      letter-spacing: 2px;
+      line-height: 1;
+    }
+
+    .stat-unit {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-left: 4px;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 300;
+    }
+
+    .stat-icon {
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      font-size: 1.3rem;
+      opacity: 0.3;
+    }
+
+    /* Bottom bar */
+    .bottom-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 16px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      animation: fadeUp 0.8s 0.7s ease both;
+    }
+
+    .pv-spec {
+      font-size: 0.72rem;
+      color: var(--muted);
+      letter-spacing: 1px;
+    }
+
+    .pv-spec span {
+      color: rgba(255,255,255,0.5);
+    }
+
+    .co2-callout {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(0,230,118,0.07);
+      border: 1px solid rgba(0,230,118,0.15);
+      border-radius: 12px;
+      padding: 10px 18px;
+    }
+
+    .co2-callout .leaf { font-size: 1.3rem; }
+
+    .co2-text {
+      font-size: 0.72rem;
+      color: var(--muted);
+      letter-spacing: 1px;
+      line-height: 1.5;
+    }
+
+    .co2-text strong {
+      display: block;
+      color: var(--green);
+      font-size: 1rem;
+      font-family: 'Bebas Neue', sans-serif;
+      letter-spacing: 2px;
+    }
+
+    .powered-by {
+      font-size: 0.68rem;
+      color: var(--muted);
+      text-align: right;
+      letter-spacing: 1px;
+      line-height: 1.8;
+    }
+
+    .powered-by strong {
+      color: rgba(255,255,255,0.4);
+      display: block;
+    }
+
+    /* Loading state */
+    .loading-overlay {
+      position: fixed;
+      inset: 0;
+      background: var(--sky);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      flex-direction: column;
+      gap: 16px;
+      transition: opacity 0.5s;
+    }
+
+    .loading-overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .loading-spinner {
+      width: 48px;
+      height: 48px;
+      border: 3px solid rgba(255,184,0,0.2);
+      border-top-color: var(--sun);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    .loading-text {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.2rem;
+      letter-spacing: 3px;
+      color: var(--muted);
+    }
+
+    /* Animations */
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 20px var(--sun), 0 0 40px rgba(255,184,0,0.4); }
+      50% { box-shadow: 0 0 30px var(--sun), 0 0 60px rgba(255,184,0,0.6); }
+    }
+
+    @keyframes rotateSun {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Error state */
+    .error-msg {
+      text-align: center;
+      color: rgba(255,100,100,0.8);
+      font-size: 0.8rem;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Loading overlay -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Connecting to ASG 8</div>
+  </div>
+
+  <div class="wrapper">
+    <header>
+      <div class="logo-area">
+        <div class="sun-icon">
+          <div class="sun-rays"></div>
+          <div class="sun-core"></div>
+        </div>
+        <div class="site-title">
+          <h1>ASG 8 Solar</h1>
+          <p>Affordable Solar Group &nbsp;·&nbsp; Belen, NM</p>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="live-badge">
+          <div class="live-dot"></div>
+          Live Data
+        </div>
+        <div class="last-updated" id="lastUpdated">Updating...</div>
+      </div>
+    </header>
+
+    <!-- Hero: current production -->
+    <div class="hero">
+      <div class="hero-label">Current Solar Output</div>
+      <div>
+        <span class="hero-value" id="currentKW">—</span>
+        <span class="hero-unit">kW</span>
+      </div>
+      <div class="hero-sub" id="capacityFactor">Capacity Factor: —%</div>
+    </div>
+
+    <!-- Stats grid -->
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-icon">☀️</div>
+        <div class="stat-label">Today's Production</div>
+        <div>
+          <span class="stat-value" id="todayVal">—</span>
+          <span class="stat-unit" id="todayUnit">kWh</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">📅</div>
+        <div class="stat-label">Yesterday</div>
+        <div>
+          <span class="stat-value" id="yesterdayVal">—</span>
+          <span class="stat-unit" id="yesterdayUnit">MWh</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">📆</div>
+        <div class="stat-label">Last 30 Days</div>
+        <div>
+          <span class="stat-value" id="last30Val">—</span>
+          <span class="stat-unit" id="last30Unit">GWh</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">⚡</div>
+        <div class="stat-label">System Capacity</div>
+        <div>
+          <span class="stat-value" id="pvSize">4,975</span>
+          <span class="stat-unit">kW AC</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom bar -->
+    <div class="bottom-bar">
+      <div class="pv-spec">
+        System Size: <span id="pvAC">4,975</span> kW AC &nbsp;/&nbsp; <span id="pvDC">6,499</span> kW DC
+      </div>
+
+      <div class="co2-callout">
+        <div class="leaf">🌱</div>
+        <div class="co2-text">
+          <strong id="co2Val">—</strong>
+          metric tons CO₂ offset (30d)
+        </div>
+      </div>
+
+      <div class="powered-by">
+        <strong>Affordable Solar Group</strong>
+        Community Solar · PNM Program
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function fetchData() {
+      try {
+        const res = await fetch('/data');
+        const d = await res.json();
+
+        if (d.status === 'loading') {
+          document.getElementById('lastUpdated').textContent = 'Fetching data...';
+          return;
+        }
+
+        if (d.status === 'ok') {
+          // Hide loading overlay
+          document.getElementById('loadingOverlay').classList.add('hidden');
+
+          // Current power
+          document.getElementById('currentKW').textContent = d.currentKW || '—';
+          document.getElementById('capacityFactor').textContent =
+            d.capacityFactor ? `Capacity Factor: ${d.capacityFactor}%` : '';
+
+          // Stats
+          if (d.todayKWh) {
+            document.getElementById('todayVal').textContent = d.todayKWh.value;
+            document.getElementById('todayUnit').textContent = d.todayKWh.unit;
+          }
+          if (d.yesterdayKWh) {
+            document.getElementById('yesterdayVal').textContent = d.yesterdayKWh.value;
+            document.getElementById('yesterdayUnit').textContent = d.yesterdayKWh.unit;
+          }
+          if (d.last30Days) {
+            document.getElementById('last30Val').textContent = d.last30Days.value;
+            document.getElementById('last30Unit').textContent = d.last30Days.unit;
+          }
+
+          // System size
+          if (d.pvSizeAC) document.getElementById('pvSize').textContent = d.pvSizeAC;
+          if (d.pvSizeAC) document.getElementById('pvAC').textContent = d.pvSizeAC;
+          if (d.pvSizeDC) document.getElementById('pvDC').textContent = d.pvSizeDC;
+
+          // CO2
+          if (d.co2OffsetTons30d) {
+            document.getElementById('co2Val').textContent = d.co2OffsetTons30d;
+          }
+
+          // Timestamp
+          if (d.scrapedAt) {
+            const t = new Date(d.scrapedAt);
+            document.getElementById('lastUpdated').textContent =
+              'Updated ' + t.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
+          }
+        }
+      } catch (err) {
+        document.getElementById('lastUpdated').textContent = 'Connection error — retrying...';
+        console.error(err);
+      }
+    }
+
+    // Fetch on load, then every 5 minutes
+    fetchData();
+    setInterval(fetchData, 5 * 60 * 1000);
+  </script>
+</body>
+</html>
