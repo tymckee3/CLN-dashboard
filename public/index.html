@@ -3,461 +3,651 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cuidando Los Niños Community Solar</title>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<title>Cuidando Los Niños · Solar Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-html,body{width:100%;height:100%;overflow:hidden;background:#060e1f;color:#f0f4ff;font-family:'Nunito',sans-serif}
-.bg{position:fixed;inset:0;background:radial-gradient(ellipse 120% 55% at 50% -5%,rgba(255,184,0,.18) 0%,transparent 60%),linear-gradient(180deg,#060e1f 0%,#0a1a38 55%,#060e1f 100%)}
-.stars{position:fixed;inset:0;background-image:radial-gradient(1.5px 1.5px at 8% 12%,rgba(255,255,255,.55),transparent),radial-gradient(1px 1px at 22% 7%,rgba(255,255,255,.4),transparent),radial-gradient(1.5px 1.5px at 55% 10%,rgba(255,255,255,.5),transparent),radial-gradient(1px 1px at 78% 5%,rgba(255,255,255,.35),transparent),radial-gradient(1px 1px at 91% 18%,rgba(255,255,255,.45),transparent),radial-gradient(2px 2px at 38% 3%,rgba(255,255,255,.3),transparent),radial-gradient(1px 1px at 68% 16%,rgba(255,255,255,.4),transparent)}
-.grid{position:relative;z-index:1;display:grid;grid-template-rows:56px 1fr 44px;grid-template-columns:1fr 1.4fr 1fr;height:100vh;gap:0;padding:12px 16px 10px;column-gap:14px;row-gap:10px}
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
 
-/* HEADER spans full width */
-header{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between}
-.logo{display:flex;align-items:center;gap:12px}
-.sun-svg{width:44px;height:44px;flex-shrink:0;animation:spinSun 18s linear infinite}
-.title h1{font-family:'Bebas Neue',sans-serif;font-size:1.75rem;letter-spacing:3px;line-height:1}
-.title p{font-size:.68rem;color:#4a6a9f;letter-spacing:2px;text-transform:uppercase;margin-top:2px}
-.hdr-right{display:flex;align-items:center;gap:16px}
-.live-pill{display:inline-flex;align-items:center;gap:6px;background:rgba(0,230,118,.1);border:1px solid rgba(0,230,118,.3);border-radius:20px;padding:4px 12px;font-size:.68rem;letter-spacing:2px;text-transform:uppercase;color:#00e676}
-.dot{width:6px;height:6px;background:#00e676;border-radius:50%;animation:blink 2s infinite}
-.time-block{text-align:right}
-.time-big{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:2px;line-height:1}
-.time-date{font-size:.65rem;color:#4a6a9f;letter-spacing:1px}
+:root {
+  --gold: #F5A623;
+  --gold-dim: rgba(245,166,35,0.15);
+  --gold-line: rgba(245,166,35,0.35);
+  --green: #27C785;
+  --green-dim: rgba(39,199,133,0.12);
+  --blue: #4B9EF5;
+  --blue-dim: rgba(75,158,245,0.12);
+  --bg: #05090F;
+  --surface: rgba(255,255,255,0.03);
+  --surface-hover: rgba(255,255,255,0.055);
+  --border: rgba(255,255,255,0.07);
+  --border-bright: rgba(255,255,255,0.13);
+  --text-primary: #EEF2FF;
+  --text-secondary: rgba(238,242,255,0.5);
+  --text-dim: rgba(238,242,255,0.28);
+  --mono: 'JetBrains Mono', monospace;
+}
 
-/* TICKER spans full width at bottom */
-.ticker{grid-column:1/-1;background:rgba(255,184,0,.07);border:1px solid rgba(255,184,0,.18);border-radius:10px;display:flex;align-items:center;gap:12px;padding:0 16px;overflow:hidden}
-.ticker-lbl{font-size:.62rem;letter-spacing:2px;text-transform:uppercase;color:#FFB800;white-space:nowrap;display:flex;align-items:center;gap:6px;flex-shrink:0}
-.ticker-txt{font-size:.82rem;color:rgba(255,255,255,.75);font-weight:700;animation:fadeUp .5s ease}
+html, body { width:100%; height:100%; overflow:hidden; background:var(--bg); color:var(--text-primary); font-family:'Inter', sans-serif; }
 
-/* LEFT COLUMN */
-.left{display:flex;flex-direction:column;gap:10px}
+/* ambient glow at top */
+body::before {
+  content:'';
+  position:fixed;
+  top:-120px; left:50%;
+  transform:translateX(-50%);
+  width:70vw; height:300px;
+  background:radial-gradient(ellipse, rgba(245,166,35,0.10) 0%, transparent 70%);
+  pointer-events:none;
+  z-index:0;
+}
 
-.hero-card{flex:1;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:18px;padding:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;position:relative;overflow:hidden}
-.hero-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,#FFB800,transparent)}
-.hero-lbl{font-size:.65rem;letter-spacing:3px;text-transform:uppercase;color:#4a6a9f;margin-bottom:4px}
-.hero-num{font-family:'Bebas Neue',sans-serif;font-size:clamp(3.5rem,7vw,6rem);line-height:.9;color:#FFB800;text-shadow:0 0 60px rgba(255,184,0,.4);letter-spacing:3px;animation:glow 3s ease-in-out infinite}
-.hero-unit{font-family:'Bebas Neue',sans-serif;font-size:clamp(1.5rem,2.5vw,2.5rem);color:rgba(255,184,0,.5);letter-spacing:2px;margin-left:6px}
-.hero-sub{font-size:.72rem;color:#4a6a9f;margin-top:6px;letter-spacing:1px}
+/* subtle grid texture */
+body::after {
+  content:'';
+  position:fixed; inset:0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px);
+  background-size:48px 48px;
+  pointer-events:none; z-index:0;
+}
 
-.weather-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:18px;padding:14px 16px}
-.weather-card::before{content:'';display:block;height:2px;background:linear-gradient(90deg,transparent,#40C4FF,transparent);margin:-14px -16px 10px;border-radius:18px 18px 0 0}
-.w-title{font-size:.62rem;letter-spacing:2px;text-transform:uppercase;color:#4a6a9f;margin-bottom:8px}
-.w-row{display:flex;justify-content:space-between;align-items:flex-end;gap:8px}
-.w-stat{text-align:center;flex:1}
-.w-val{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;color:#f0f4ff;letter-spacing:1px}
-.w-unit{font-size:.6rem;color:#4a6a9f;letter-spacing:1px;display:block;margin-top:1px}
-.irr-bar-wrap{margin-top:8px}
-.irr-label{font-size:.6rem;color:#4a6a9f;letter-spacing:1px;display:flex;justify-content:space-between;margin-bottom:3px}
-.irr-track{background:rgba(255,255,255,.07);border-radius:4px;height:8px;overflow:hidden}
-.irr-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#FFB800,#fff3a0);transition:width 1.5s ease}
+/* ── LAYOUT ──────────────────────────────────────────── */
+.shell {
+  position:relative; z-index:1;
+  height:100vh;
+  display:grid;
+  grid-template-columns: 320px 1fr 280px;
+  grid-template-rows: 52px 1fr 36px;
+  gap:10px;
+  padding:10px 12px 8px;
+}
+
+/* ── HEADER ──────────────────────────────────────────── */
+.hdr {
+  grid-column:1/-1;
+  display:flex; align-items:center; justify-content:space-between;
+  border-bottom:1px solid var(--border);
+  padding-bottom:8px;
+}
+
+.hdr-left { display:flex; align-items:center; gap:14px; }
+
+.sun-mark {
+  width:32px; height:32px; flex-shrink:0;
+  position:relative;
+}
+.sun-mark svg { animation: rotateSun 25s linear infinite; }
+
+.hdr-titles {}
+.hdr-titles .project-name {
+  font-family:'Bebas Neue', sans-serif;
+  font-size:1.45rem; letter-spacing:0.08em;
+  color:var(--text-primary); line-height:1;
+}
+.hdr-titles .project-sub {
+  font-size:0.6rem; font-weight:500; letter-spacing:0.18em;
+  text-transform:uppercase; color:var(--text-dim);
+  margin-top:2px;
+}
+
+.hdr-right { display:flex; align-items:center; gap:20px; }
+
+.live-indicator {
+  display:flex; align-items:center; gap:7px;
+  font-size:0.6rem; font-weight:600; letter-spacing:0.2em;
+  text-transform:uppercase; color:var(--green);
+}
+.live-dot {
+  width:7px; height:7px; border-radius:50%;
+  background:var(--green);
+  box-shadow:0 0 8px var(--green);
+  animation:livePulse 2.2s ease-in-out infinite;
+}
+
+.clock-block { text-align:right; }
+.clock-time {
+  font-family:var(--mono); font-size:1.1rem; font-weight:500;
+  color:var(--text-primary); letter-spacing:0.05em; line-height:1;
+}
+.clock-date {
+  font-size:0.58rem; font-weight:400; letter-spacing:0.12em;
+  text-transform:uppercase; color:var(--text-dim); margin-top:2px;
+}
+
+.updated-tag {
+  font-family:var(--mono); font-size:0.58rem;
+  color:var(--text-dim); letter-spacing:0.05em;
+}
 </style>
 
-/* CENTER COLUMN */
-.center{display:flex;flex-direction:column;gap:10px}
-.chart-card{flex:1;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:18px;padding:14px 16px;display:flex;flex-direction:column}
-.chart-card::before{content:'';display:block;height:2px;background:linear-gradient(90deg,transparent,#00E676,transparent);margin:-14px -16px 10px;border-radius:18px 18px 0 0}
-.chart-title{font-size:.62rem;letter-spacing:2px;text-transform:uppercase;color:#4a6a9f;margin-bottom:8px}
-.chart-wrap{flex:1;position:relative;min-height:0}
+/* ── LEFT COLUMN ─────────────────────────────────────── */
+.col-left {
+  display:flex; flex-direction:column; gap:9px;
+}
 
-.irr-chart-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:18px;padding:14px 16px;display:flex;flex-direction:column}
-.irr-chart-card::before{content:'';display:block;height:2px;background:linear-gradient(90deg,transparent,#FFB800,transparent);margin:-14px -16px 10px;border-radius:18px 18px 0 0}
+/* Big output card */
+.output-card {
+  flex:1;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:20px;
+  display:flex; flex-direction:column;
+  justify-content:center; align-items:center;
+  text-align:center;
+  position:relative; overflow:hidden;
+}
+.output-card::after {
+  content:'';
+  position:absolute; top:0; left:0; right:0; height:1px;
+  background:linear-gradient(90deg, transparent, var(--gold), transparent);
+}
+.output-label {
+  font-size:0.58rem; font-weight:600; letter-spacing:0.22em;
+  text-transform:uppercase; color:var(--text-dim); margin-bottom:10px;
+}
+.output-number {
+  font-family:'Bebas Neue', sans-serif;
+  font-size:clamp(3.8rem,8vw,6.5rem);
+  line-height:0.9; color:var(--gold); letter-spacing:0.03em;
+  animation:numGlow 4s ease-in-out infinite;
+}
+.output-unit {
+  font-family:'Bebas Neue', sans-serif;
+  font-size:clamp(1.6rem,3vw,2.8rem);
+  color:rgba(245,166,35,0.4); letter-spacing:0.05em; margin-left:6px;
+}
+.output-meta {
+  font-size:0.62rem; font-weight:400; color:var(--text-secondary);
+  margin-top:10px; letter-spacing:0.06em;
+}
+.output-equiv {
+  font-size:0.7rem; font-weight:600; color:var(--gold);
+  margin-top:5px; letter-spacing:0.04em;
+  opacity:0.75;
+}
 
-/* RIGHT COLUMN */
-.right{display:flex;flex-direction:column;gap:10px}
-.stat-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:18px;padding:14px 16px;position:relative;overflow:hidden}
-.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--c),transparent)}
-.sc1{--c:#FFB800}.sc2{--c:#40C4FF}.sc3{--c:#00E676}.sc4{--c:#CE93D8}
-.s-lbl{font-size:.6rem;letter-spacing:2px;text-transform:uppercase;color:#4a6a9f;margin-bottom:4px;display:flex;align-items:center;gap:6px}
-.s-val{font-family:'Bebas Neue',sans-serif;font-size:clamp(1.6rem,2.8vw,2.4rem);letter-spacing:2px;line-height:1}
-.s-unit{font-size:.68rem;color:#4a6a9f;font-weight:400;margin-left:3px}
-.s-equiv{font-size:.6rem;color:rgba(255,255,255,.3);margin-top:3px;font-style:italic}
+/* Capacity bar */
+.cap-bar-wrap { margin-top:14px; width:100%; }
+.cap-bar-labels {
+  display:flex; justify-content:space-between;
+  font-family:var(--mono); font-size:0.55rem; color:var(--text-dim);
+  margin-bottom:5px;
+}
+.cap-track {
+  height:4px; background:rgba(255,255,255,0.07);
+  border-radius:2px; overflow:hidden;
+}
+.cap-fill {
+  height:100%; border-radius:2px;
+  background:linear-gradient(90deg, rgba(245,166,35,0.5), var(--gold));
+  transition:width 1.5s cubic-bezier(.4,0,.2,1);
+}
 
-.co2-card{background:rgba(0,230,118,.06);border:1px solid rgba(0,230,118,.18);border-radius:18px;padding:14px 16px}
-.co2-top{display:flex;align-items:baseline;gap:6px}
-.co2-num{font-family:'Bebas Neue',sans-serif;font-size:2rem;color:#00E676;letter-spacing:2px}
-.co2-lbl{font-size:.6rem;color:#4a6a9f;letter-spacing:1px;line-height:1.5;margin-top:2px}
-.trees-row{display:flex;align-items:center;gap:6px;margin-top:6px}
-.tree-icon{font-size:.9rem}
-.trees-txt{font-size:.65rem;color:rgba(0,230,118,.7);font-weight:700}
+/* Weather card */
+.weather-card {
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:14px 16px;
+  position:relative; overflow:hidden;
+}
+.weather-card::after {
+  content:'';
+  position:absolute; top:0; left:0; right:0; height:1px;
+  background:linear-gradient(90deg, transparent, var(--blue), transparent);
+}
+.card-label {
+  font-size:0.55rem; font-weight:600; letter-spacing:0.2em;
+  text-transform:uppercase; color:var(--text-dim); margin-bottom:10px;
+}
+.weather-grid {
+  display:grid; grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+.w-item {}
+.w-val {
+  font-family:var(--mono); font-size:1.3rem; font-weight:500;
+  color:var(--text-primary); line-height:1;
+}
+.w-lbl {
+  font-size:0.55rem; font-weight:500; letter-spacing:0.14em;
+  text-transform:uppercase; color:var(--text-dim);
+  margin-top:3px;
+}
+.irr-section { margin-top:12px; }
+.irr-header {
+  display:flex; justify-content:space-between; align-items:center;
+  margin-bottom:5px;
+}
+.irr-title { font-size:0.55rem; font-weight:600; letter-spacing:0.15em; text-transform:uppercase; color:var(--text-dim); }
+.irr-value { font-family:var(--mono); font-size:0.75rem; font-weight:500; color:var(--gold); }
+.irr-track { height:6px; background:rgba(255,255,255,0.07); border-radius:3px; overflow:hidden; }
+.irr-fill { height:100%; border-radius:3px; background:linear-gradient(90deg, var(--gold-dim), var(--gold)); transition:width 1.5s ease; }
+</style_chunk_2>
 
-.credit-row{display:flex;align-items:center;justify-content:space-between;padding:2px 0}
-.credit-txt{font-size:.62rem;color:#4a6a9f;letter-spacing:1px;line-height:1.7}
-.credit-txt strong{color:rgba(255,255,255,.3);display:block}
-.sys-spec{font-size:.6rem;color:#4a6a9f}
+/* ── CENTER COLUMN ───────────────────────────────────── */
+.col-center { display:flex; flex-direction:column; gap:9px; }
 
-/* ANIMATIONS */
-@keyframes spinSun{to{transform:rotate(360deg)}}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
-@keyframes glow{0%,100%{text-shadow:0 0 60px rgba(255,184,0,.4)}50%{text-shadow:0 0 100px rgba(255,184,0,.65)}}
-@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.chart-card {
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:14px 16px;
+  display:flex; flex-direction:column;
+  flex:1; overflow:hidden;
+  position:relative;
+}
+.chart-card.green-top::after {
+  content:''; position:absolute; top:0; left:0; right:0; height:1px;
+  background:linear-gradient(90deg, transparent, var(--green), transparent);
+}
+.chart-card.gold-top::after {
+  content:''; position:absolute; top:0; left:0; right:0; height:1px;
+  background:linear-gradient(90deg, transparent, var(--gold), transparent);
+}
+.chart-inner { flex:1; position:relative; min-height:0; }
+
+/* ── RIGHT COLUMN ────────────────────────────────────── */
+.col-right { display:flex; flex-direction:column; gap:9px; }
+
+.stat-block {
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:13px 15px;
+}
+.stat-block .s-label {
+  font-size:0.55rem; font-weight:600; letter-spacing:0.2em;
+  text-transform:uppercase; color:var(--text-dim); margin-bottom:5px;
+}
+.stat-block .s-main {
+  display:flex; align-items:baseline; gap:5px;
+}
+.stat-block .s-num {
+  font-family:'Bebas Neue', sans-serif;
+  font-size:2.1rem; letter-spacing:0.03em; line-height:1;
+  color:var(--text-primary);
+}
+.stat-block .s-unit {
+  font-size:0.65rem; font-weight:500; color:var(--text-secondary);
+  letter-spacing:0.08em;
+}
+.stat-block .s-sub {
+  font-size:0.58rem; color:var(--text-dim);
+  margin-top:4px; letter-spacing:0.04em;
+}
+
+.co2-block {
+  background:var(--green-dim);
+  border:1px solid rgba(39,199,133,0.2);
+  border-radius:14px;
+  padding:13px 15px;
+}
+.co2-block .s-label { color:rgba(39,199,133,0.5); }
+.co2-block .s-num { color:var(--green); }
+.co2-block .trees-line {
+  font-size:0.62rem; font-weight:600; color:rgba(39,199,133,0.65);
+  margin-top:5px; letter-spacing:0.04em;
+}
+
+/* ── TICKER BAR ──────────────────────────────────────── */
+.ticker-bar {
+  grid-column:1/-1;
+  display:flex; align-items:center; gap:12px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:0 16px;
+  overflow:hidden;
+}
+.ticker-tag {
+  font-size:0.52rem; font-weight:700; letter-spacing:0.22em;
+  text-transform:uppercase; color:var(--gold); white-space:nowrap;
+  padding:0 12px 0 0; border-right:1px solid var(--border-bright); flex-shrink:0;
+}
+.ticker-msg {
+  font-size:0.78rem; font-weight:400; color:var(--text-secondary);
+  letter-spacing:0.02em;
+  animation:tickerIn 0.6s cubic-bezier(.4,0,.2,1);
+}
+.ticker-msg span { color:var(--text-primary); font-weight:600; }
+
+/* ── ANIMATIONS ──────────────────────────────────────── */
+@keyframes rotateSun { to { transform:rotate(360deg); } }
+@keyframes livePulse { 0%,100%{opacity:1;box-shadow:0 0 8px var(--green)} 50%{opacity:.5;box-shadow:0 0 3px var(--green)} }
+@keyframes numGlow { 0%,100%{filter:drop-shadow(0 0 18px rgba(245,166,35,0.35))} 50%{filter:drop-shadow(0 0 35px rgba(245,166,35,0.6))} }
+@keyframes tickerIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
 </style>
 </head>
 <body>
-<div class="bg"></div>
-<div class="stars"></div>
-<div class="grid">
+<div class="shell">
 
 <!-- HEADER -->
-<header>
-  <div class="logo">
-    <svg class="sun-svg" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="22" cy="22" r="9" fill="#FFB800" opacity="0.95"/>
-      <line x1="22" y1="2" x2="22" y2="10" stroke="#FFB800" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
-      <line x1="22" y1="34" x2="22" y2="42" stroke="#FFB800" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
-      <line x1="2" y1="22" x2="10" y2="22" stroke="#FFB800" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
-      <line x1="34" y1="22" x2="42" y2="22" stroke="#FFB800" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
-      <line x1="7.5" y1="7.5" x2="13.5" y2="13.5" stroke="#FFB800" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
-      <line x1="30.5" y1="30.5" x2="36.5" y2="36.5" stroke="#FFB800" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
-      <line x1="36.5" y1="7.5" x2="30.5" y2="13.5" stroke="#FFB800" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
-      <line x1="13.5" y1="30.5" x2="7.5" y2="36.5" stroke="#FFB800" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
-    </svg>
-    <div class="title">
-      <h1>Cuidando Los Niños Community Solar Project</h1>
-      <p>Provided by Affordable Solar Group · Belen, NM</p>
+<header class="hdr">
+  <div class="hdr-left">
+    <div class="sun-mark">
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+        <circle cx="16" cy="16" r="7" fill="#F5A623"/>
+        <line x1="16" y1="1" x2="16" y2="7" stroke="#F5A623" stroke-width="2" stroke-linecap="round" opacity=".6"/>
+        <line x1="16" y1="25" x2="16" y2="31" stroke="#F5A623" stroke-width="2" stroke-linecap="round" opacity=".6"/>
+        <line x1="1" y1="16" x2="7" y2="16" stroke="#F5A623" stroke-width="2" stroke-linecap="round" opacity=".6"/>
+        <line x1="25" y1="16" x2="31" y2="16" stroke="#F5A623" stroke-width="2" stroke-linecap="round" opacity=".6"/>
+        <line x1="5.5" y1="5.5" x2="9.5" y2="9.5" stroke="#F5A623" stroke-width="1.5" stroke-linecap="round" opacity=".4"/>
+        <line x1="22.5" y1="22.5" x2="26.5" y2="26.5" stroke="#F5A623" stroke-width="1.5" stroke-linecap="round" opacity=".4"/>
+        <line x1="26.5" y1="5.5" x2="22.5" y2="9.5" stroke="#F5A623" stroke-width="1.5" stroke-linecap="round" opacity=".4"/>
+        <line x1="9.5" y1="22.5" x2="5.5" y2="26.5" stroke="#F5A623" stroke-width="1.5" stroke-linecap="round" opacity=".4"/>
+      </svg>
+    </div>
+    <div class="hdr-titles">
+      <div class="project-name">Cuidando Los Niños Community Solar</div>
+      <div class="project-sub">Provided by Affordable Solar Group · Belen, New Mexico</div>
     </div>
   </div>
   <div class="hdr-right">
-    <div class="live-pill"><div class="dot"></div>Live Data</div>
-    <div class="time-block">
-      <div class="time-big" id="clock">--:--</div>
-      <div class="time-date" id="dateStr">Loading...</div>
+    <div class="updated-tag" id="updatedAt">—</div>
+    <div class="live-indicator"><div class="live-dot"></div>Live</div>
+    <div class="clock-block">
+      <div class="clock-time" id="clock">--:--</div>
+      <div class="clock-date" id="clockDate">—</div>
     </div>
   </div>
 </header>
 
-<!-- LEFT COLUMN -->
-<div class="left">
-  <div class="hero-card">
-    <div class="hero-lbl">Current Solar Output</div>
+<!-- LEFT -->
+<div class="col-left">
+  <div class="output-card">
+    <div class="output-label">Current Solar Output</div>
     <div>
-      <span class="hero-num" id="currentKW">—</span>
-      <span class="hero-unit">kW</span>
+      <span class="output-number" id="currentKW">—</span><span class="output-unit">kW</span>
     </div>
-    <div class="hero-sub" id="capFactor">Capacity Factor: —%</div>
-    <div class="hero-sub" id="homesPowered" style="margin-top:4px;color:rgba(255,184,0,.6);font-weight:700"></div>
+    <div class="output-meta" id="capFactor">Capacity Factor —%</div>
+    <div class="output-equiv" id="homesPowered"></div>
+    <div class="cap-bar-wrap">
+      <div class="cap-bar-labels">
+        <span>0 kW</span><span id="capPct">—% of capacity</span><span>4,975 kW</span>
+      </div>
+      <div class="cap-track"><div class="cap-fill" id="capFill" style="width:0%"></div></div>
+    </div>
   </div>
 
   <div class="weather-card">
-    <div class="w-title">☀️ Weather & Solar Irradiance · Belen, NM</div>
-    <div class="w-row">
-      <div class="w-stat">
-        <div class="w-val" id="wTemp">—</div>
-        <span class="w-unit">Temp °F</span>
-      </div>
-      <div class="w-stat">
-        <div class="w-val" id="wCloud">—</div>
-        <span class="w-unit">Cloud Cover %</span>
-      </div>
-      <div class="w-stat">
-        <div class="w-val" id="wIrr">—</div>
-        <span class="w-unit">W/m² (Direct)</span>
-      </div>
-      <div class="w-stat">
-        <div class="w-val" id="wWind">—</div>
-        <span class="w-unit">Wind mph</span>
-      </div>
+    <div class="card-label">Conditions · Belen NM</div>
+    <div class="weather-grid">
+      <div class="w-item"><div class="w-val" id="wTemp">—</div><div class="w-lbl">Temp °F</div></div>
+      <div class="w-item"><div class="w-val" id="wCloud">—</div><div class="w-lbl">Cloud %</div></div>
+      <div class="w-item"><div class="w-val" id="wWind">—</div><div class="w-lbl">Wind mph</div></div>
+      <div class="w-item"><div class="w-val" id="wHum">—</div><div class="w-lbl">Humidity %</div></div>
     </div>
-    <div class="irr-bar-wrap">
-      <div class="irr-label">
-        <span>Solar Irradiance</span>
-        <span id="irrPct">0%</span>
+    <div class="irr-section">
+      <div class="irr-header">
+        <span class="irr-title">Direct Solar Irradiance</span>
+        <span class="irr-value" id="irrVal">— W/m²</span>
       </div>
       <div class="irr-track"><div class="irr-fill" id="irrFill" style="width:0%"></div></div>
     </div>
   </div>
 </div>
 
-<!-- CENTER COLUMN -->
-<div class="center">
-  <div class="chart-card">
-    <div class="chart-title">📊 7-Day Production History</div>
-    <div class="chart-wrap">
-      <canvas id="prodChart"></canvas>
-    </div>
+<!-- CENTER -->
+<div class="col-center">
+  <div class="chart-card green-top" style="flex:1.6">
+    <div class="card-label" style="margin-bottom:8px">7-Day Production History</div>
+    <div class="chart-inner"><canvas id="prodChart"></canvas></div>
   </div>
-  <div class="irr-chart-card">
-    <div class="chart-title">☀️ Today's Solar Irradiance Forecast (W/m²)</div>
-    <div class="chart-wrap" style="height:100px">
-      <canvas id="irrChart"></canvas>
-    </div>
+  <div class="chart-card gold-top" style="flex:1">
+    <div class="card-label" style="margin-bottom:8px">Today's Solar Irradiance Forecast · W/m²</div>
+    <div class="chart-inner"><canvas id="irrChart"></canvas></div>
   </div>
 </div>
 
-<!-- RIGHT COLUMN -->
-<div class="right">
-  <div class="stat-card sc1">
-    <div class="s-lbl">☀️ Today's Production</div>
-    <div><span class="s-val" id="todayVal">—</span><span class="s-unit" id="todayUnit">kWh</span></div>
-    <div class="s-equiv" id="todayEquiv"></div>
-  </div>
-  <div class="stat-card sc2">
-    <div class="s-lbl">📅 Yesterday</div>
-    <div><span class="s-val" id="yestVal">—</span><span class="s-unit" id="yestUnit">MWh</span></div>
-    <div class="s-equiv" id="yestEquiv"></div>
-  </div>
-  <div class="stat-card sc3">
-    <div class="s-lbl">📆 Last 30 Days</div>
-    <div><span class="s-val" id="last30Val">—</span><span class="s-unit" id="last30Unit">GWh</span></div>
-    <div class="s-equiv" id="last30Equiv"></div>
-  </div>
-  <div class="stat-card sc4">
-    <div class="s-lbl">⚡ System Capacity</div>
-    <div><span class="s-val">4,975</span><span class="s-unit">kW AC</span></div>
-    <div class="s-equiv">6,499 kW DC · 20 Inverters</div>
-  </div>
-  <div class="co2-card">
-    <div class="s-lbl" style="font-size:.6rem;letter-spacing:2px;text-transform:uppercase;color:#4a6a9f;margin-bottom:4px">🌱 CO₂ Offset (30 days)</div>
-    <div class="co2-top">
-      <div class="co2-num" id="co2Val">—</div>
-      <div class="co2-lbl">metric tons<br>of CO₂ kept<br>out of our air</div>
+<!-- RIGHT -->
+<div class="col-right">
+  <div class="stat-block">
+    <div class="s-label">Today's Production</div>
+    <div class="s-main">
+      <span class="s-num" id="todayVal">—</span>
+      <span class="s-unit" id="todayUnit">kWh</span>
     </div>
-    <div class="trees-row">
-      <span class="tree-icon">🌳</span>
-      <span class="trees-txt" id="treesEquiv"></span>
-    </div>
+    <div class="s-sub" id="todayEquiv"></div>
   </div>
-  <div class="credit-row">
-    <div class="sys-spec" id="updatedAt">Updated: —</div>
-    <div class="credit-txt"><strong>Affordable Solar Group</strong>Community Solar · PNM Program</div>
+
+  <div class="stat-block">
+    <div class="s-label">Yesterday</div>
+    <div class="s-main">
+      <span class="s-num" id="yestVal">—</span>
+      <span class="s-unit" id="yestUnit">MWh</span>
+    </div>
+    <div class="s-sub" id="yestEquiv"></div>
+  </div>
+
+  <div class="stat-block">
+    <div class="s-label">Last 30 Days</div>
+    <div class="s-main">
+      <span class="s-num" id="last30Val">—</span>
+      <span class="s-unit" id="last30Unit">GWh</span>
+    </div>
+    <div class="s-sub" id="last30Equiv"></div>
+  </div>
+
+  <div class="stat-block">
+    <div class="s-label">System Size</div>
+    <div class="s-main">
+      <span class="s-num">4,975</span>
+      <span class="s-unit">kW AC</span>
+    </div>
+    <div class="s-sub">6,499 kW DC · 20 Inverters · Belen NM</div>
+  </div>
+
+  <div class="co2-block">
+    <div class="s-label">CO₂ Kept Out of Our Air · 30 Days</div>
+    <div class="s-main">
+      <span class="s-num" id="co2Val">—</span>
+      <span class="s-unit">metric tons</span>
+    </div>
+    <div class="trees-line" id="treesLine"></div>
   </div>
 </div>
 
 <!-- TICKER -->
-<div class="ticker">
-  <div class="ticker-lbl">★ Did you know?</div>
-  <div class="ticker-txt" id="tickerTxt">Loading...</div>
+<div class="ticker-bar">
+  <div class="ticker-tag">Did you know</div>
+  <div class="ticker-msg" id="tickerMsg">Loading...</div>
 </div>
 
-</div><!-- end grid -->
+</div><!-- end shell -->
 <script>
-// ── HELPERS ──────────────────────────────────────────────
-function toKwh(val, unit) {
-  if (!val || val==='—') return 0;
-  const v = parseFloat(String(val).replace(',',''));
-  if (unit==='GWh') return v*1000000;
-  if (unit==='MWh') return v*1000;
-  return v;
-}
-function fmt(n) { return n>=1000000?(n/1000000).toFixed(2)+' GWh':n>=1000?(n/1000).toFixed(1)+' MWh':Math.round(n)+' kWh'; }
-function homes(kwh){ return Math.max(1,Math.round(kwh/30)); }
-function trees(kwh){ return Math.round(kwh*0.0001); }
-function cToF(c){ return Math.round(c*9/5+32); }
-function mpsToMph(v){ return Math.round(v*2.237); }
+// ── UTILS ─────────────────────────────────────────────
+function toKwh(val,unit){if(!val||val==='—')return 0;const v=parseFloat(String(val).replace(',',''));if(unit==='GWh')return v*1e6;if(unit==='MWh')return v*1e3;return v;}
+function homes(kwh){return Math.max(1,Math.round(kwh/30));}
+function cToF(c){return Math.round(c*9/5+32);}
+function mpsToMph(v){return Math.round(v*2.237);}
 
-// ── CLOCK ─────────────────────────────────────────────────
+// ── CLOCK ─────────────────────────────────────────────
 function tick(){
   const n=new Date();
   document.getElementById('clock').textContent=n.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
-  document.getElementById('dateStr').textContent=n.toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
+  document.getElementById('clockDate').textContent=n.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
 }
 tick(); setInterval(tick,1000);
 
-// ── CHARTS ────────────────────────────────────────────────
-Chart.defaults.color='rgba(255,255,255,0.4)';
-Chart.defaults.font.family='Nunito';
-
+// ── CHARTS ────────────────────────────────────────────
+Chart.defaults.color='rgba(238,242,255,0.35)';
+Chart.defaults.font.family='Inter';
 let prodChart, irrChart;
 
-function initProdChart(labels, values) {
-  const ctx = document.getElementById('prodChart').getContext('2d');
-  if (prodChart) prodChart.destroy();
-  prodChart = new Chart(ctx, {
+function makeProdChart(labels,vals){
+  const ctx=document.getElementById('prodChart').getContext('2d');
+  if(prodChart)prodChart.destroy();
+  const grad=ctx.createLinearGradient(0,0,0,200);
+  grad.addColorStop(0,'rgba(39,199,133,0.3)');
+  grad.addColorStop(1,'rgba(39,199,133,0)');
+  prodChart=new Chart(ctx,{
     type:'bar',
-    data:{
-      labels,
-      datasets:[{
-        label:'kWh Produced',
-        data: values,
-        backgroundColor: values.map((_,i)=> i===values.length-1 ? 'rgba(255,184,0,0.9)' : 'rgba(255,184,0,0.35)'),
-        borderColor: values.map((_,i)=> i===values.length-1 ? '#FFB800' : 'rgba(255,184,0,0.5)'),
-        borderWidth:1, borderRadius:4,
-      }]
-    },
+    data:{labels,datasets:[{
+      data:vals,
+      backgroundColor:vals.map((_,i)=>i===vals.length-1?'rgba(39,199,133,0.85)':'rgba(39,199,133,0.28)'),
+      borderColor:vals.map((_,i)=>i===vals.length-1?'#27C785':'rgba(39,199,133,0.45)'),
+      borderWidth:1,borderRadius:5,borderSkipped:false
+    }]},
     options:{
-      responsive:true, maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmt(c.raw)}}},
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{
+        backgroundColor:'rgba(5,9,15,0.95)',
+        borderColor:'rgba(255,255,255,0.1)',borderWidth:1,
+        titleFont:{size:11},bodyFont:{family:'JetBrains Mono',size:11},
+        callbacks:{label:c=>{const v=c.raw;return v>=1000?(v/1000).toFixed(2)+' MWh':Math.round(v)+' kWh';}}
+      }},
       scales:{
-        x:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{font:{size:10}}},
-        y:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{font:{size:10},callback:v=>v>=1000?(v/1000).toFixed(0)+'k':v}}
+        x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{font:{size:9},maxRotation:30}},
+        y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{font:{size:9,family:'JetBrains Mono'},callback:v=>v>=1000?(v/1000).toFixed(0)+'k':v},border:{dash:[3,3]}}
       }
     }
   });
 }
 
-function initIrrChart(hours, vals) {
-  const ctx = document.getElementById('irrChart').getContext('2d');
-  if (irrChart) irrChart.destroy();
-  const now = new Date().getHours();
-  irrChart = new Chart(ctx, {
+function makeIrrChart(hours,vals){
+  const ctx=document.getElementById('irrChart').getContext('2d');
+  if(irrChart)irrChart.destroy();
+  const grad=ctx.createLinearGradient(0,0,0,100);
+  grad.addColorStop(0,'rgba(245,166,35,0.25)');
+  grad.addColorStop(1,'rgba(245,166,35,0)');
+  irrChart=new Chart(ctx,{
     type:'line',
-    data:{
-      labels: hours,
-      datasets:[{
-        data: vals,
-        borderColor:'#FFB800', backgroundColor:'rgba(255,184,0,0.12)',
-        borderWidth:2, fill:true, tension:0.4, pointRadius:0,
-        pointHoverRadius:4,
-      }]
-    },
+    data:{labels:hours,datasets:[{
+      data:vals,borderColor:'#F5A623',backgroundColor:grad,
+      borderWidth:2,fill:true,tension:0.45,pointRadius:0
+    }]},
     options:{
-      responsive:true, maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw+' W/m²'}}},
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{
+        backgroundColor:'rgba(5,9,15,0.95)',
+        borderColor:'rgba(255,255,255,0.1)',borderWidth:1,
+        callbacks:{label:c=>c.raw+' W/m²'}
+      }},
       scales:{
-        x:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{font:{size:9},maxTicksLimit:8}},
-        y:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{font:{size:9}},min:0}
+        x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{font:{size:9},maxTicksLimit:9}},
+        y:{grid:{color:'rgba(255,255,255,0.04)'},min:0,ticks:{font:{size:9,family:'JetBrains Mono'}},border:{dash:[3,3]}}
       }
     }
   });
 }
-
-// ── WEATHER (Open-Meteo, free, no key) ───────────────────
-async function fetchWeather() {
-  try {
-    const url = 'https://api.open-meteo.com/v1/forecast?latitude=34.6612&longitude=-106.7747&current=temperature_2m,cloudcover,wind_speed_10m,direct_radiation&hourly=direct_radiation&timezone=America%2FDenver&forecast_days=1';
-    const res = await fetch(url);
-    const d = await res.json();
-    const cur = d.current;
-
-    const tempF = cToF(cur.temperature_2m);
-    const cloud = Math.round(cur.cloudcover);
-    const irr = Math.round(cur.direct_radiation||0);
-    const wind = mpsToMph(cur.wind_speed_10m);
-    const maxIrr = 1000;
-    const irrPct = Math.round(Math.min(100, irr/maxIrr*100));
-
-    document.getElementById('wTemp').textContent = tempF+'°';
-    document.getElementById('wCloud').textContent = cloud+'%';
-    document.getElementById('wIrr').textContent = irr;
-    document.getElementById('wWind').textContent = wind;
-    document.getElementById('irrFill').style.width = irrPct+'%';
-    document.getElementById('irrPct').textContent = irrPct+'%';
-
-    // Build irradiance chart from hourly data
-    const hours = d.hourly.time.map(t => {
-      const h = parseInt(t.split('T')[1]);
-      return h===0?'12am':h<12?h+'am':h===12?'12pm':(h-12)+'pm';
-    });
-    const irrVals = d.hourly.direct_radiation.map(v=>Math.round(v||0));
-    initIrrChart(hours, irrVals);
-
-  } catch(e) { console.error('Weather fetch failed:', e); }
+</script>
+<script>
+// ── WEATHER ───────────────────────────────────────────
+async function fetchWeather(){
+  try{
+    const r=await fetch('https://api.open-meteo.com/v1/forecast?latitude=34.6612&longitude=-106.7747&current=temperature_2m,relativehumidity_2m,cloudcover,wind_speed_10m,direct_radiation&hourly=direct_radiation&timezone=America%2FDenver&forecast_days=1');
+    const d=await r.json();
+    const c=d.current;
+    document.getElementById('wTemp').textContent=cToF(c.temperature_2m)+'°';
+    document.getElementById('wCloud').textContent=Math.round(c.cloudcover)+'%';
+    document.getElementById('wWind').textContent=mpsToMph(c.wind_speed_10m);
+    document.getElementById('wHum').textContent=Math.round(c.relativehumidity_2m)+'%';
+    const irr=Math.round(c.direct_radiation||0);
+    document.getElementById('irrVal').textContent=irr+' W/m²';
+    const pct=Math.min(100,Math.round(irr/1000*100));
+    document.getElementById('irrFill').style.width=pct+'%';
+    const hrs=d.hourly.time.map(t=>{const h=parseInt(t.split('T')[1]);return h===0?'12a':h<12?h+'a':h===12?'12p':(h-12)+'p';});
+    makeIrrChart(hrs,d.hourly.direct_radiation.map(v=>Math.round(v||0)));
+  }catch(e){console.error('weather',e);}
 }
 
-// ── PRODUCTION DATA ───────────────────────────────────────
-async function fetchData() {
-  try {
-    const [dRes, hRes] = await Promise.all([
-      fetch('/data.json?t='+Date.now()),
-      fetch('/history.json?t='+Date.now())
-    ]);
-    const d = await dRes.json();
-    let history = [];
-    try { history = await hRes.json(); } catch(e) {}
+// ── SOLAR DATA ────────────────────────────────────────
+async function fetchData(){
+  try{
+    const[dr,hr]=await Promise.all([fetch('/data.json?t='+Date.now()),fetch('/history.json?t='+Date.now())]);
+    const d=await dr.json();
+    let hist=[];try{hist=await hr.json();}catch(e){}
+    if(d.status!=='ok')return;
 
-    if (d.status !== 'ok') return;
+    const kw=parseFloat(d.currentKW)||0;
+    document.getElementById('currentKW').textContent=d.currentKW||'—';
+    document.getElementById('capFactor').textContent='Capacity Factor '+(d.capacityFactor||'—')+'%';
+    const capPct=Math.min(100,(kw/4975*100));
+    document.getElementById('capFill').style.width=capPct.toFixed(1)+'%';
+    document.getElementById('capPct').textContent=capPct.toFixed(1)+'% of capacity';
+    if(kw>0)document.getElementById('homesPowered').textContent='Powering approx. '+homes(kw*0.5).toLocaleString()+' homes right now';
 
-    // Live output
-    document.getElementById('currentKW').textContent = d.currentKW||'—';
-    document.getElementById('capFactor').textContent = d.capacityFactor ? 'Capacity Factor: '+d.capacityFactor+'%' : '';
-    const kwNow = parseFloat(d.currentKW)||0;
-    if (kwNow>0) document.getElementById('homesPowered').textContent = '≈ '+homes(kwNow*0.5).toLocaleString()+' homes right now';
+    function setStat(valId,unitId,subId,obj,subFn){
+      if(!obj)return;
+      document.getElementById(valId).textContent=obj.value;
+      document.getElementById(unitId).textContent=obj.unit;
+      if(subId)document.getElementById(subId).textContent=subFn(toKwh(obj.value,obj.unit));
+    }
+    setStat('todayVal','todayUnit','todayEquiv',d.todayKWh,k=>'Enough for '+homes(k).toLocaleString()+' homes today');
+    setStat('yestVal','yestUnit','yestEquiv',d.yesterdayKWh,k=>'Enough for '+homes(k).toLocaleString()+' homes');
+    setStat('last30Val','last30Unit','last30Equiv',d.last30Days,k=>'Avg '+homes(k/30).toLocaleString()+' homes per day');
 
-    // Stats
-    if (d.todayKWh) {
-      document.getElementById('todayVal').textContent = d.todayKWh.value;
-      document.getElementById('todayUnit').textContent = d.todayKWh.unit;
-      const kwh = toKwh(d.todayKWh.value, d.todayKWh.unit);
-      document.getElementById('todayEquiv').textContent = '≈ '+homes(kwh).toLocaleString()+' homes for a day';
+    if(d.co2OffsetTons30d){
+      document.getElementById('co2Val').textContent=d.co2OffsetTons30d;
+      document.getElementById('treesLine').textContent='Same as planting '+Math.round(parseFloat(d.co2OffsetTons30d)*48).toLocaleString()+' trees';
     }
-    if (d.yesterdayKWh) {
-      document.getElementById('yestVal').textContent = d.yesterdayKWh.value;
-      document.getElementById('yestUnit').textContent = d.yesterdayKWh.unit;
-      const kwh = toKwh(d.yesterdayKWh.value, d.yesterdayKWh.unit);
-      document.getElementById('yestEquiv').textContent = '≈ '+homes(kwh).toLocaleString()+' homes for a day';
-    }
-    if (d.last30Days) {
-      document.getElementById('last30Val').textContent = d.last30Days.value;
-      document.getElementById('last30Unit').textContent = d.last30Days.unit;
-      const kwh = toKwh(d.last30Days.value, d.last30Days.unit);
-      document.getElementById('last30Equiv').textContent = '≈ '+homes(kwh/30).toLocaleString()+' homes/day avg';
-    }
-    if (d.co2OffsetTons30d) {
-      document.getElementById('co2Val').textContent = d.co2OffsetTons30d+' tons';
-      document.getElementById('treesEquiv').textContent = 'equivalent to planting '+Math.round(parseFloat(d.co2OffsetTons30d)*48).toLocaleString()+' trees!';
-    }
-    if (d.scrapedAt) {
-      const t = new Date(d.scrapedAt);
-      document.getElementById('updatedAt').textContent = 'Updated '+t.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZoneName:'short'});
+    if(d.scrapedAt){
+      const t=new Date(d.scrapedAt);
+      document.getElementById('updatedAt').textContent='Updated '+t.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZoneName:'short'});
     }
 
-    // Production chart from history
-    if (history.length > 0) {
-      const recent = history.slice(-7);
-      const labels = recent.map(h => {
-        const d = new Date(h.date+'T12:00:00');
-        return d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
-      });
-      const vals = recent.map(h => h.kwhProduced);
-      initProdChart(labels, vals);
+    if(hist.length>0){
+      const rec=hist.slice(-7);
+      const lbl=rec.map(h=>{const dt=new Date(h.date+'T12:00:00');return dt.toLocaleDateString('en-US',{weekday:'short',month:'numeric',day:'numeric'});});
+      makeProdChart(lbl,rec.map(h=>h.kwhProduced));
     }
-
     buildFacts(d);
+  }catch(e){console.error('data',e);}
+}
+</script>
+<script>
+// ── TICKER ────────────────────────────────────────────
+let facts=['Loading...'],fi=0;
 
-  } catch(e) { console.error('Data fetch failed:', e); }
+function buildFacts(d){
+  const kw=parseFloat(d.currentKW)||0;
+  const tKwh=toKwh(d.todayKWh?.value,d.todayKWh?.unit);
+  const l30=toKwh(d.last30Days?.value,d.last30Days?.unit);
+  const co2=parseFloat(d.co2OffsetTons30d)||0;
+  const f=[];
+
+  if(kw>0){
+    f.push({t:`This solar farm is producing <span>${kw} kilowatts</span> right now — that's enough to power <span>${homes(kw*0.5).toLocaleString()} homes</span> at this very moment.`});
+    f.push({t:`<span>${kw} kW</span> of clean electricity is flowing from this field right now. That's ${Math.round(kw*1000)} watts — the same as running ${Math.round(kw*1000/100).toLocaleString()} lightbulbs simultaneously.`});
+  }
+  if(tKwh>0){
+    f.push({t:`Today, this solar field has produced <span>${d.todayKWh.value} ${d.todayKWh.unit}</span> of electricity — with zero fuel, zero pollution, and zero noise.`});
+    f.push({t:`Today's output could drive an electric car <span>${Math.round(tKwh*3.5).toLocaleString()} miles</span> — that's ${Math.round(tKwh*3.5/234)} trips from Belen to Albuquerque.`});
+  }
+  if(l30>0){
+    f.push({t:`Over the last 30 days, this field produced <span>${d.last30Days.value} ${d.last30Days.unit}</span> — powering an average of <span>${homes(l30/30).toLocaleString()} homes every single day</span>.`});
+    f.push({t:`In 30 days, this project displaced <span>${co2.toFixed(0)} metric tons</span> of CO₂ — the same as taking <span>${Math.round(co2/4.6)} cars off the road</span> for a full month.`});
+    f.push({t:`The CO₂ saved in 30 days here is equivalent to planting <span>${Math.round(co2*48).toLocaleString()} trees</span> — and this clean energy keeps coming every single day.`});
+  }
+  f.push({t:`Solar panels have no moving parts and produce electricity silently. A solar cell can last <span>30+ years</span> with almost zero maintenance.`});
+  f.push({t:`New Mexico receives more solar energy per square foot than almost anywhere in the United States — making it one of the <span>best places on Earth</span> for solar power.`});
+  f.push({t:`The photoelectric effect — how solar panels work — was explained by <span>Albert Einstein</span> in 1905. He won the Nobel Prize for it in 1921.`});
+  f.push({t:`Community solar means the clean energy this field produces is <span>shared directly with local families and businesses</span> in the surrounding area.`});
+  f.push({t:`One hour of sunlight hitting Earth contains more energy than <span>all of humanity uses in an entire year</span>. Solar panels capture a small but growing slice of that.`});
+  facts=f;
 }
 
-// ── FUN FACTS TICKER ─────────────────────────────────────
-let facts = ['Loading solar facts...'];
-let factIdx = 0;
-
-function buildFacts(d) {
-  const kwNow = parseFloat(d.currentKW)||0;
-  const todayKwh = toKwh(d.todayKWh?.value, d.todayKWh?.unit);
-  const last30Kwh = toKwh(d.last30Days?.value, d.last30Days?.unit);
-
-  const list = [];
-  if (kwNow>0) {
-    list.push('Right now this solar farm is generating '+kwNow+' kW — enough to power '+homes(kwNow*0.5).toLocaleString()+' homes at this very moment!');
-    list.push('The '+kwNow+' kW being produced right now could charge '+Math.round(kwNow*83).toLocaleString()+' smartphones simultaneously!');
-  }
-  if (todayKwh>0) {
-    list.push("Today's clean energy could power "+homes(todayKwh).toLocaleString()+' average New Mexico homes for an entire day!');
-    list.push("Today's solar output is equivalent to planting "+Math.round(todayKwh*0.0003861).toLocaleString()+' trees!');
-    list.push("Today's energy could drive an electric car "+Math.round(todayKwh*3.5).toLocaleString()+' miles — that\'s like driving from Belen to New York '+Math.round(todayKwh*3.5/1900)+' times!');
-  }
-  if (last30Kwh>0) {
-    list.push('Over 30 days, this farm powered '+homes(last30Kwh/30).toLocaleString()+' homes every single day with zero pollution!');
-    list.push('This solar project kept '+d.co2OffsetTons30d+' metric tons of CO₂ out of the air in 30 days — like taking '+Math.round(parseFloat(d.co2OffsetTons30d)/4.6)+' cars off the road!');
-  }
-  list.push('Solar panels work by knocking electrons loose with photons from sunlight — it\'s called the photoelectric effect!');
-  list.push('New Mexico gets over 300 sunny days a year — making it one of the best places for solar energy on Earth!');
-  list.push('This community solar project helps local families save money while producing 100% clean, renewable energy!');
-  list.push('The solar panels here can produce electricity for 25–30 years with almost zero maintenance!');
-  list.push('Solar energy produces zero air pollution, zero water pollution, and zero greenhouse gases while making electricity!');
-  list.push('Albert Einstein won the Nobel Prize in 1921 for explaining how solar cells work — the photoelectric effect!');
-  list.push('One hour of sunlight hitting Earth contains more energy than the entire world uses in a full year!');
-
-  facts = list;
-}
-
-function showNextFact() {
-  const el = document.getElementById('tickerTxt');
-  el.style.animation = 'none';
+function showFact(){
+  const el=document.getElementById('tickerMsg');
+  el.style.animation='none';
   void el.offsetHeight;
-  el.style.animation = 'fadeUp .5s ease';
-  el.textContent = facts[factIdx % facts.length];
-  factIdx++;
+  el.style.animation='tickerIn 0.6s cubic-bezier(.4,0,.2,1)';
+  const fact=facts[fi%facts.length];
+  el.innerHTML=fact.t||fact;
+  fi++;
 }
 
-// ── INIT ──────────────────────────────────────────────────
+// ── INIT ──────────────────────────────────────────────
 fetchData();
 fetchWeather();
-setInterval(fetchData, 5*60*1000);
-setInterval(fetchWeather, 10*60*1000);
-showNextFact();
-setInterval(showNextFact, 9000);
+setInterval(fetchData,5*60*1000);
+setInterval(fetchWeather,10*60*1000);
+showFact();
+setInterval(showFact,10*1000);
 </script>
 </body>
 </html>
