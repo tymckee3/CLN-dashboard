@@ -7,341 +7,113 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
-*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --gold:#F5A623;--gold-dim:rgba(245,166,35,0.15);--green:#27C785;--green-dim:rgba(39,199,133,0.12);
+  --blue:#4B9EF5;--bg:#05090F;--surface:rgba(255,255,255,0.03);--border:rgba(255,255,255,0.07);
+  --border-bright:rgba(255,255,255,0.13);--text-primary:#EEF2FF;--text-secondary:rgba(238,242,255,0.5);
+  --text-dim:rgba(238,242,255,0.28);--mono:'JetBrains Mono',monospace;
+}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text-primary);font-family:'Inter',sans-serif}
+body::before{content:'';position:fixed;top:-120px;left:50%;transform:translateX(-50%);width:70vw;height:300px;background:radial-gradient(ellipse,rgba(245,166,35,0.10) 0%,transparent 70%);pointer-events:none;z-index:0}
+body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(255,255,255,0.018) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.018) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;z-index:0}
 
-:root {
-  --gold: #F5A623;
-  --gold-dim: rgba(245,166,35,0.15);
-  --gold-line: rgba(245,166,35,0.35);
-  --green: #27C785;
-  --green-dim: rgba(39,199,133,0.12);
-  --blue: #4B9EF5;
-  --blue-dim: rgba(75,158,245,0.12);
-  --bg: #05090F;
-  --surface: rgba(255,255,255,0.03);
-  --surface-hover: rgba(255,255,255,0.055);
-  --border: rgba(255,255,255,0.07);
-  --border-bright: rgba(255,255,255,0.13);
-  --text-primary: #EEF2FF;
-  --text-secondary: rgba(238,242,255,0.5);
-  --text-dim: rgba(238,242,255,0.28);
-  --mono: 'JetBrains Mono', monospace;
-}
+/* LAYOUT */
+.shell{position:relative;z-index:1;height:100vh;display:grid;grid-template-columns:300px 1fr 268px;grid-template-rows:52px 1fr 36px;gap:9px;padding:10px 12px 8px}
 
-html, body { width:100%; height:100%; overflow:hidden; background:var(--bg); color:var(--text-primary); font-family:'Inter', sans-serif; }
+/* HEADER */
+.hdr{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:8px}
+.hdr-left{display:flex;align-items:center;gap:12px}
+.sun-mark svg{animation:rotateSun 25s linear infinite}
+.project-name{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:.08em;line-height:1}
+.project-sub{font-size:.58rem;font-weight:500;letter-spacing:.18em;text-transform:uppercase;color:var(--text-dim);margin-top:2px}
+.hdr-right{display:flex;align-items:center;gap:18px}
+.live-indicator{display:flex;align-items:center;gap:7px;font-size:.58rem;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--green)}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:livePulse 2.2s ease-in-out infinite}
+.clock-time{font-family:var(--mono);font-size:1.1rem;font-weight:500;letter-spacing:.05em;line-height:1;text-align:right}
+.clock-date{font-size:.56rem;font-weight:400;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim);margin-top:2px;text-align:right}
+.updated-tag{font-family:var(--mono);font-size:.56rem;color:var(--text-dim)}
 
-/* ambient glow at top */
-body::before {
-  content:'';
-  position:fixed;
-  top:-120px; left:50%;
-  transform:translateX(-50%);
-  width:70vw; height:300px;
-  background:radial-gradient(ellipse, rgba(245,166,35,0.10) 0%, transparent 70%);
-  pointer-events:none;
-  z-index:0;
-}
+/* LEFT */
+.col-left{display:flex;flex-direction:column;gap:9px}
+.output-card{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;position:relative;overflow:hidden}
+.output-card::after{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+.output-label{font-size:.56rem;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px}
+.output-number{font-family:'Bebas Neue',sans-serif;font-size:clamp(3.5rem,7.5vw,6rem);line-height:.9;color:var(--gold);letter-spacing:.03em;animation:numGlow 4s ease-in-out infinite}
+.output-unit{font-family:'Bebas Neue',sans-serif;font-size:clamp(1.4rem,2.5vw,2.5rem);color:rgba(245,166,35,0.4);letter-spacing:.05em;margin-left:5px}
+.output-meta{font-size:.6rem;color:var(--text-secondary);margin-top:8px;letter-spacing:.06em}
+.output-equiv{font-size:.68rem;font-weight:600;color:var(--gold);margin-top:4px;opacity:.7;letter-spacing:.03em}
+.cap-bar-wrap{margin-top:12px;width:100%}
+.cap-bar-labels{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.52rem;color:var(--text-dim);margin-bottom:4px}
+.cap-track{height:4px;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden}
+.cap-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,rgba(245,166,35,.5),var(--gold));transition:width 1.5s cubic-bezier(.4,0,.2,1)}
 
-/* subtle grid texture */
-body::after {
-  content:'';
-  position:fixed; inset:0;
-  background-image:
-    linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px);
-  background-size:48px 48px;
-  pointer-events:none; z-index:0;
-}
+.weather-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:13px 15px;position:relative;overflow:hidden}
+.weather-card::after{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--blue),transparent)}
+.card-label{font-size:.53rem;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--text-dim);margin-bottom:9px}
+.weather-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.w-val{font-family:var(--mono);font-size:1.25rem;font-weight:500;color:var(--text-primary);line-height:1}
+.w-lbl{font-size:.52rem;font-weight:500;letter-spacing:.13em;text-transform:uppercase;color:var(--text-dim);margin-top:2px}
+.irr-section{margin-top:10px}
+.irr-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.irr-title{font-size:.52rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dim)}
+.irr-value{font-family:var(--mono);font-size:.72rem;font-weight:500;color:var(--gold)}
+.irr-track{height:6px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden}
+.irr-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,rgba(245,166,35,.4),var(--gold));transition:width 1.5s ease}
 
-/* ── LAYOUT ──────────────────────────────────────────── */
-.shell {
-  position:relative; z-index:1;
-  height:100vh;
-  display:grid;
-  grid-template-columns: 320px 1fr 280px;
-  grid-template-rows: 52px 1fr 36px;
-  gap:10px;
-  padding:10px 12px 8px;
-}
+/* CENTER */
+.col-center{display:flex;flex-direction:column;gap:9px}
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:13px 15px;display:flex;flex-direction:column;position:relative;overflow:hidden}
+.chart-card.green-accent::after{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--green),transparent)}
+.chart-card.gold-accent::after{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+.chart-inner{flex:1;position:relative;min-height:0}
 
-/* ── HEADER ──────────────────────────────────────────── */
-.hdr {
-  grid-column:1/-1;
-  display:flex; align-items:center; justify-content:space-between;
-  border-bottom:1px solid var(--border);
-  padding-bottom:8px;
-}
+/* RIGHT */
+.col-right{display:flex;flex-direction:column;gap:9px}
+.stat-block{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 14px;position:relative;overflow:hidden}
+.stat-block::after{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--accent,var(--gold)),transparent)}
+.s-label{font-size:.52rem;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--text-dim);margin-bottom:4px}
+.s-main{display:flex;align-items:baseline;gap:4px}
+.s-num{font-family:'Bebas Neue',sans-serif;font-size:1.95rem;letter-spacing:.03em;line-height:1;color:var(--text-primary)}
+.s-unit{font-size:.62rem;font-weight:500;color:var(--text-secondary);letter-spacing:.07em}
+.s-sub{font-size:.56rem;color:var(--text-dim);margin-top:3px;letter-spacing:.03em}
+.co2-block{background:var(--green-dim);border:1px solid rgba(39,199,133,.2);border-radius:14px;padding:12px 14px}
+.co2-block .s-label{color:rgba(39,199,133,.45)}
+.co2-block .s-num{color:var(--green)}
+.trees-line{font-size:.6rem;font-weight:600;color:rgba(39,199,133,.6);margin-top:4px;letter-spacing:.03em}
 
-.hdr-left { display:flex; align-items:center; gap:14px; }
+/* TICKER */
+.ticker-bar{grid-column:1/-1;display:flex;align-items:center;gap:0;background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.ticker-tag{font-size:.5rem;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);white-space:nowrap;padding:0 14px;border-right:1px solid var(--border-bright);flex-shrink:0;height:100%;display:flex;align-items:center}
+.ticker-msg{font-size:.76rem;font-weight:400;color:var(--text-secondary);letter-spacing:.02em;padding:0 16px;animation:tickerIn .6s cubic-bezier(.4,0,.2,1)}
+.ticker-msg strong{color:var(--text-primary);font-weight:600}
 
-.sun-mark {
-  width:32px; height:32px; flex-shrink:0;
-  position:relative;
-}
-.sun-mark svg { animation: rotateSun 25s linear infinite; }
-
-.hdr-titles {}
-.hdr-titles .project-name {
-  font-family:'Bebas Neue', sans-serif;
-  font-size:1.45rem; letter-spacing:0.08em;
-  color:var(--text-primary); line-height:1;
-}
-.hdr-titles .project-sub {
-  font-size:0.6rem; font-weight:500; letter-spacing:0.18em;
-  text-transform:uppercase; color:var(--text-dim);
-  margin-top:2px;
-}
-
-.hdr-right { display:flex; align-items:center; gap:20px; }
-
-.live-indicator {
-  display:flex; align-items:center; gap:7px;
-  font-size:0.6rem; font-weight:600; letter-spacing:0.2em;
-  text-transform:uppercase; color:var(--green);
-}
-.live-dot {
-  width:7px; height:7px; border-radius:50%;
-  background:var(--green);
-  box-shadow:0 0 8px var(--green);
-  animation:livePulse 2.2s ease-in-out infinite;
-}
-
-.clock-block { text-align:right; }
-.clock-time {
-  font-family:var(--mono); font-size:1.1rem; font-weight:500;
-  color:var(--text-primary); letter-spacing:0.05em; line-height:1;
-}
-.clock-date {
-  font-size:0.58rem; font-weight:400; letter-spacing:0.12em;
-  text-transform:uppercase; color:var(--text-dim); margin-top:2px;
-}
-
-.updated-tag {
-  font-family:var(--mono); font-size:0.58rem;
-  color:var(--text-dim); letter-spacing:0.05em;
-}
-</style>
-
-/* ── LEFT COLUMN ─────────────────────────────────────── */
-.col-left {
-  display:flex; flex-direction:column; gap:9px;
-}
-
-/* Big output card */
-.output-card {
-  flex:1;
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:14px;
-  padding:20px;
-  display:flex; flex-direction:column;
-  justify-content:center; align-items:center;
-  text-align:center;
-  position:relative; overflow:hidden;
-}
-.output-card::after {
-  content:'';
-  position:absolute; top:0; left:0; right:0; height:1px;
-  background:linear-gradient(90deg, transparent, var(--gold), transparent);
-}
-.output-label {
-  font-size:0.58rem; font-weight:600; letter-spacing:0.22em;
-  text-transform:uppercase; color:var(--text-dim); margin-bottom:10px;
-}
-.output-number {
-  font-family:'Bebas Neue', sans-serif;
-  font-size:clamp(3.8rem,8vw,6.5rem);
-  line-height:0.9; color:var(--gold); letter-spacing:0.03em;
-  animation:numGlow 4s ease-in-out infinite;
-}
-.output-unit {
-  font-family:'Bebas Neue', sans-serif;
-  font-size:clamp(1.6rem,3vw,2.8rem);
-  color:rgba(245,166,35,0.4); letter-spacing:0.05em; margin-left:6px;
-}
-.output-meta {
-  font-size:0.62rem; font-weight:400; color:var(--text-secondary);
-  margin-top:10px; letter-spacing:0.06em;
-}
-.output-equiv {
-  font-size:0.7rem; font-weight:600; color:var(--gold);
-  margin-top:5px; letter-spacing:0.04em;
-  opacity:0.75;
-}
-
-/* Capacity bar */
-.cap-bar-wrap { margin-top:14px; width:100%; }
-.cap-bar-labels {
-  display:flex; justify-content:space-between;
-  font-family:var(--mono); font-size:0.55rem; color:var(--text-dim);
-  margin-bottom:5px;
-}
-.cap-track {
-  height:4px; background:rgba(255,255,255,0.07);
-  border-radius:2px; overflow:hidden;
-}
-.cap-fill {
-  height:100%; border-radius:2px;
-  background:linear-gradient(90deg, rgba(245,166,35,0.5), var(--gold));
-  transition:width 1.5s cubic-bezier(.4,0,.2,1);
-}
-
-/* Weather card */
-.weather-card {
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:14px;
-  padding:14px 16px;
-  position:relative; overflow:hidden;
-}
-.weather-card::after {
-  content:'';
-  position:absolute; top:0; left:0; right:0; height:1px;
-  background:linear-gradient(90deg, transparent, var(--blue), transparent);
-}
-.card-label {
-  font-size:0.55rem; font-weight:600; letter-spacing:0.2em;
-  text-transform:uppercase; color:var(--text-dim); margin-bottom:10px;
-}
-.weather-grid {
-  display:grid; grid-template-columns:1fr 1fr;
-  gap:10px;
-}
-.w-item {}
-.w-val {
-  font-family:var(--mono); font-size:1.3rem; font-weight:500;
-  color:var(--text-primary); line-height:1;
-}
-.w-lbl {
-  font-size:0.55rem; font-weight:500; letter-spacing:0.14em;
-  text-transform:uppercase; color:var(--text-dim);
-  margin-top:3px;
-}
-.irr-section { margin-top:12px; }
-.irr-header {
-  display:flex; justify-content:space-between; align-items:center;
-  margin-bottom:5px;
-}
-.irr-title { font-size:0.55rem; font-weight:600; letter-spacing:0.15em; text-transform:uppercase; color:var(--text-dim); }
-.irr-value { font-family:var(--mono); font-size:0.75rem; font-weight:500; color:var(--gold); }
-.irr-track { height:6px; background:rgba(255,255,255,0.07); border-radius:3px; overflow:hidden; }
-.irr-fill { height:100%; border-radius:3px; background:linear-gradient(90deg, var(--gold-dim), var(--gold)); transition:width 1.5s ease; }
-</style_chunk_2>
-
-/* ── CENTER COLUMN ───────────────────────────────────── */
-.col-center { display:flex; flex-direction:column; gap:9px; }
-
-.chart-card {
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:14px;
-  padding:14px 16px;
-  display:flex; flex-direction:column;
-  flex:1; overflow:hidden;
-  position:relative;
-}
-.chart-card.green-top::after {
-  content:''; position:absolute; top:0; left:0; right:0; height:1px;
-  background:linear-gradient(90deg, transparent, var(--green), transparent);
-}
-.chart-card.gold-top::after {
-  content:''; position:absolute; top:0; left:0; right:0; height:1px;
-  background:linear-gradient(90deg, transparent, var(--gold), transparent);
-}
-.chart-inner { flex:1; position:relative; min-height:0; }
-
-/* ── RIGHT COLUMN ────────────────────────────────────── */
-.col-right { display:flex; flex-direction:column; gap:9px; }
-
-.stat-block {
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:14px;
-  padding:13px 15px;
-}
-.stat-block .s-label {
-  font-size:0.55rem; font-weight:600; letter-spacing:0.2em;
-  text-transform:uppercase; color:var(--text-dim); margin-bottom:5px;
-}
-.stat-block .s-main {
-  display:flex; align-items:baseline; gap:5px;
-}
-.stat-block .s-num {
-  font-family:'Bebas Neue', sans-serif;
-  font-size:2.1rem; letter-spacing:0.03em; line-height:1;
-  color:var(--text-primary);
-}
-.stat-block .s-unit {
-  font-size:0.65rem; font-weight:500; color:var(--text-secondary);
-  letter-spacing:0.08em;
-}
-.stat-block .s-sub {
-  font-size:0.58rem; color:var(--text-dim);
-  margin-top:4px; letter-spacing:0.04em;
-}
-
-.co2-block {
-  background:var(--green-dim);
-  border:1px solid rgba(39,199,133,0.2);
-  border-radius:14px;
-  padding:13px 15px;
-}
-.co2-block .s-label { color:rgba(39,199,133,0.5); }
-.co2-block .s-num { color:var(--green); }
-.co2-block .trees-line {
-  font-size:0.62rem; font-weight:600; color:rgba(39,199,133,0.65);
-  margin-top:5px; letter-spacing:0.04em;
-}
-
-/* ── TICKER BAR ──────────────────────────────────────── */
-.ticker-bar {
-  grid-column:1/-1;
-  display:flex; align-items:center; gap:12px;
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:10px;
-  padding:0 16px;
-  overflow:hidden;
-}
-.ticker-tag {
-  font-size:0.52rem; font-weight:700; letter-spacing:0.22em;
-  text-transform:uppercase; color:var(--gold); white-space:nowrap;
-  padding:0 12px 0 0; border-right:1px solid var(--border-bright); flex-shrink:0;
-}
-.ticker-msg {
-  font-size:0.78rem; font-weight:400; color:var(--text-secondary);
-  letter-spacing:0.02em;
-  animation:tickerIn 0.6s cubic-bezier(.4,0,.2,1);
-}
-.ticker-msg span { color:var(--text-primary); font-weight:600; }
-
-/* ── ANIMATIONS ──────────────────────────────────────── */
-@keyframes rotateSun { to { transform:rotate(360deg); } }
-@keyframes livePulse { 0%,100%{opacity:1;box-shadow:0 0 8px var(--green)} 50%{opacity:.5;box-shadow:0 0 3px var(--green)} }
-@keyframes numGlow { 0%,100%{filter:drop-shadow(0 0 18px rgba(245,166,35,0.35))} 50%{filter:drop-shadow(0 0 35px rgba(245,166,35,0.6))} }
-@keyframes tickerIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+/* ANIMATIONS */
+@keyframes rotateSun{to{transform:rotate(360deg)}}
+@keyframes livePulse{0%,100%{opacity:1;box-shadow:0 0 8px var(--green)}50%{opacity:.5;box-shadow:0 0 3px var(--green)}}
+@keyframes numGlow{0%,100%{filter:drop-shadow(0 0 18px rgba(245,166,35,.35))}50%{filter:drop-shadow(0 0 35px rgba(245,166,35,.6))}}
+@keyframes tickerIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
 </style>
 </head>
 <body>
 <div class="shell">
 
-<!-- HEADER -->
 <header class="hdr">
   <div class="hdr-left">
     <div class="sun-mark">
-      <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-        <circle cx="16" cy="16" r="7" fill="#F5A623"/>
-        <line x1="16" y1="1" x2="16" y2="7" stroke="#F5A623" stroke-width="2" stroke-linecap="round" opacity=".6"/>
-        <line x1="16" y1="25" x2="16" y2="31" stroke="#F5A623" stroke-width="2" stroke-linecap="round" opacity=".6"/>
-        <line x1="1" y1="16" x2="7" y2="16" stroke="#F5A623" stroke-width="2" stroke-linecap="round" opacity=".6"/>
-        <line x1="25" y1="16" x2="31" y2="16" stroke="#F5A623" stroke-width="2" stroke-linecap="round" opacity=".6"/>
-        <line x1="5.5" y1="5.5" x2="9.5" y2="9.5" stroke="#F5A623" stroke-width="1.5" stroke-linecap="round" opacity=".4"/>
-        <line x1="22.5" y1="22.5" x2="26.5" y2="26.5" stroke="#F5A623" stroke-width="1.5" stroke-linecap="round" opacity=".4"/>
-        <line x1="26.5" y1="5.5" x2="22.5" y2="9.5" stroke="#F5A623" stroke-width="1.5" stroke-linecap="round" opacity=".4"/>
-        <line x1="9.5" y1="22.5" x2="5.5" y2="26.5" stroke="#F5A623" stroke-width="1.5" stroke-linecap="round" opacity=".4"/>
+      <svg width="30" height="30" viewBox="0 0 30 30" fill="none">
+        <circle cx="15" cy="15" r="6" fill="#F5A623"/>
+        <line x1="15" y1="1" x2="15" y2="6" stroke="#F5A623" stroke-width="2" stroke-linecap="round" opacity=".65"/>
+        <line x1="15" y1="24" x2="15" y2="29" stroke="#F5A623" stroke-width="2" stroke-linecap="round" opacity=".65"/>
+        <line x1="1" y1="15" x2="6" y2="15" stroke="#F5A623" stroke-width="2" stroke-linecap="round" opacity=".65"/>
+        <line x1="24" y1="15" x2="29" y2="15" stroke="#F5A623" stroke-width="2" stroke-linecap="round" opacity=".65"/>
+        <line x1="4.9" y1="4.9" x2="8.4" y2="8.4" stroke="#F5A623" stroke-width="1.5" stroke-linecap="round" opacity=".4"/>
+        <line x1="21.6" y1="21.6" x2="25.1" y2="25.1" stroke="#F5A623" stroke-width="1.5" stroke-linecap="round" opacity=".4"/>
+        <line x1="25.1" y1="4.9" x2="21.6" y2="8.4" stroke="#F5A623" stroke-width="1.5" stroke-linecap="round" opacity=".4"/>
+        <line x1="8.4" y1="21.6" x2="4.9" y2="25.1" stroke="#F5A623" stroke-width="1.5" stroke-linecap="round" opacity=".4"/>
       </svg>
     </div>
-    <div class="hdr-titles">
+    <div>
       <div class="project-name">Cuidando Los Niños Community Solar</div>
       <div class="project-sub">Provided by Affordable Solar Group · Belen, New Mexico</div>
     </div>
@@ -349,20 +121,18 @@ body::after {
   <div class="hdr-right">
     <div class="updated-tag" id="updatedAt">—</div>
     <div class="live-indicator"><div class="live-dot"></div>Live</div>
-    <div class="clock-block">
+    <div>
       <div class="clock-time" id="clock">--:--</div>
       <div class="clock-date" id="clockDate">—</div>
     </div>
   </div>
 </header>
 
-<!-- LEFT -->
+<!-- LEFT COLUMN -->
 <div class="col-left">
   <div class="output-card">
     <div class="output-label">Current Solar Output</div>
-    <div>
-      <span class="output-number" id="currentKW">—</span><span class="output-unit">kW</span>
-    </div>
+    <div><span class="output-number" id="currentKW">—</span><span class="output-unit">kW</span></div>
     <div class="output-meta" id="capFactor">Capacity Factor —%</div>
     <div class="output-equiv" id="homesPowered"></div>
     <div class="cap-bar-wrap">
@@ -372,14 +142,13 @@ body::after {
       <div class="cap-track"><div class="cap-fill" id="capFill" style="width:0%"></div></div>
     </div>
   </div>
-
   <div class="weather-card">
     <div class="card-label">Conditions · Belen NM</div>
     <div class="weather-grid">
-      <div class="w-item"><div class="w-val" id="wTemp">—</div><div class="w-lbl">Temp °F</div></div>
-      <div class="w-item"><div class="w-val" id="wCloud">—</div><div class="w-lbl">Cloud %</div></div>
-      <div class="w-item"><div class="w-val" id="wWind">—</div><div class="w-lbl">Wind mph</div></div>
-      <div class="w-item"><div class="w-val" id="wHum">—</div><div class="w-lbl">Humidity %</div></div>
+      <div><div class="w-val" id="wTemp">—</div><div class="w-lbl">Temp °F</div></div>
+      <div><div class="w-val" id="wCloud">—</div><div class="w-lbl">Cloud Cover</div></div>
+      <div><div class="w-val" id="wWind">—</div><div class="w-lbl">Wind mph</div></div>
+      <div><div class="w-val" id="wHum">—</div><div class="w-lbl">Humidity</div></div>
     </div>
     <div class="irr-section">
       <div class="irr-header">
@@ -391,62 +160,43 @@ body::after {
   </div>
 </div>
 
-<!-- CENTER -->
+<!-- CENTER COLUMN -->
 <div class="col-center">
-  <div class="chart-card green-top" style="flex:1.6">
-    <div class="card-label" style="margin-bottom:8px">7-Day Production History</div>
+  <div class="chart-card green-accent" style="flex:1.6">
+    <div class="card-label" style="margin-bottom:6px">7-Day Production History</div>
     <div class="chart-inner"><canvas id="prodChart"></canvas></div>
   </div>
-  <div class="chart-card gold-top" style="flex:1">
-    <div class="card-label" style="margin-bottom:8px">Today's Solar Irradiance Forecast · W/m²</div>
+  <div class="chart-card gold-accent" style="flex:1">
+    <div class="card-label" style="margin-bottom:6px">Today's Solar Irradiance Forecast · W/m²</div>
     <div class="chart-inner"><canvas id="irrChart"></canvas></div>
   </div>
 </div>
 
-<!-- RIGHT -->
+<!-- RIGHT COLUMN -->
 <div class="col-right">
-  <div class="stat-block">
+  <div class="stat-block" style="--accent:var(--gold)">
     <div class="s-label">Today's Production</div>
-    <div class="s-main">
-      <span class="s-num" id="todayVal">—</span>
-      <span class="s-unit" id="todayUnit">kWh</span>
-    </div>
+    <div class="s-main"><span class="s-num" id="todayVal">—</span><span class="s-unit" id="todayUnit">kWh</span></div>
     <div class="s-sub" id="todayEquiv"></div>
   </div>
-
-  <div class="stat-block">
+  <div class="stat-block" style="--accent:var(--blue)">
     <div class="s-label">Yesterday</div>
-    <div class="s-main">
-      <span class="s-num" id="yestVal">—</span>
-      <span class="s-unit" id="yestUnit">MWh</span>
-    </div>
+    <div class="s-main"><span class="s-num" id="yestVal">—</span><span class="s-unit" id="yestUnit">MWh</span></div>
     <div class="s-sub" id="yestEquiv"></div>
   </div>
-
-  <div class="stat-block">
+  <div class="stat-block" style="--accent:var(--green)">
     <div class="s-label">Last 30 Days</div>
-    <div class="s-main">
-      <span class="s-num" id="last30Val">—</span>
-      <span class="s-unit" id="last30Unit">GWh</span>
-    </div>
+    <div class="s-main"><span class="s-num" id="last30Val">—</span><span class="s-unit" id="last30Unit">GWh</span></div>
     <div class="s-sub" id="last30Equiv"></div>
   </div>
-
-  <div class="stat-block">
+  <div class="stat-block" style="--accent:rgba(238,242,255,0.2)">
     <div class="s-label">System Size</div>
-    <div class="s-main">
-      <span class="s-num">4,975</span>
-      <span class="s-unit">kW AC</span>
-    </div>
+    <div class="s-main"><span class="s-num">4,975</span><span class="s-unit">kW AC</span></div>
     <div class="s-sub">6,499 kW DC · 20 Inverters · Belen NM</div>
   </div>
-
   <div class="co2-block">
-    <div class="s-label">CO₂ Kept Out of Our Air · 30 Days</div>
-    <div class="s-main">
-      <span class="s-num" id="co2Val">—</span>
-      <span class="s-unit">metric tons</span>
-    </div>
+    <div class="s-label">CO₂ Offset · 30 Days</div>
+    <div class="s-main"><span class="s-num" id="co2Val">—</span><span class="s-unit">metric tons</span></div>
     <div class="trees-line" id="treesLine"></div>
   </div>
 </div>
@@ -457,112 +207,78 @@ body::after {
   <div class="ticker-msg" id="tickerMsg">Loading...</div>
 </div>
 
-</div><!-- end shell -->
+</div>
 <script>
-// ── UTILS ─────────────────────────────────────────────
 function toKwh(val,unit){if(!val||val==='—')return 0;const v=parseFloat(String(val).replace(',',''));if(unit==='GWh')return v*1e6;if(unit==='MWh')return v*1e3;return v;}
 function homes(kwh){return Math.max(1,Math.round(kwh/30));}
 function cToF(c){return Math.round(c*9/5+32);}
 function mpsToMph(v){return Math.round(v*2.237);}
 
-// ── CLOCK ─────────────────────────────────────────────
 function tick(){
   const n=new Date();
   document.getElementById('clock').textContent=n.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
   document.getElementById('clockDate').textContent=n.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
 }
-tick(); setInterval(tick,1000);
+tick();setInterval(tick,1000);
 
-// ── CHARTS ────────────────────────────────────────────
 Chart.defaults.color='rgba(238,242,255,0.35)';
 Chart.defaults.font.family='Inter';
-let prodChart, irrChart;
+let prodChart,irrChart;
 
 function makeProdChart(labels,vals){
   const ctx=document.getElementById('prodChart').getContext('2d');
   if(prodChart)prodChart.destroy();
-  const grad=ctx.createLinearGradient(0,0,0,200);
-  grad.addColorStop(0,'rgba(39,199,133,0.3)');
-  grad.addColorStop(1,'rgba(39,199,133,0)');
-  prodChart=new Chart(ctx,{
-    type:'bar',
-    data:{labels,datasets:[{
-      data:vals,
-      backgroundColor:vals.map((_,i)=>i===vals.length-1?'rgba(39,199,133,0.85)':'rgba(39,199,133,0.28)'),
-      borderColor:vals.map((_,i)=>i===vals.length-1?'#27C785':'rgba(39,199,133,0.45)'),
-      borderWidth:1,borderRadius:5,borderSkipped:false
-    }]},
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{
-        backgroundColor:'rgba(5,9,15,0.95)',
-        borderColor:'rgba(255,255,255,0.1)',borderWidth:1,
+  const grad=ctx.createLinearGradient(0,0,0,180);
+  grad.addColorStop(0,'rgba(39,199,133,0.35)');grad.addColorStop(1,'rgba(39,199,133,0)');
+  prodChart=new Chart(ctx,{type:'bar',data:{labels,datasets:[{data:vals,
+    backgroundColor:vals.map((_,i)=>i===vals.length-1?'rgba(39,199,133,0.85)':'rgba(39,199,133,0.28)'),
+    borderColor:vals.map((_,i)=>i===vals.length-1?'#27C785':'rgba(39,199,133,0.45)'),
+    borderWidth:1,borderRadius:5,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(5,9,15,0.95)',borderColor:'rgba(255,255,255,0.08)',borderWidth:1,
         titleFont:{size:11},bodyFont:{family:'JetBrains Mono',size:11},
-        callbacks:{label:c=>{const v=c.raw;return v>=1000?(v/1000).toFixed(2)+' MWh':Math.round(v)+' kWh';}}
-      }},
-      scales:{
-        x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{font:{size:9},maxRotation:30}},
-        y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{font:{size:9,family:'JetBrains Mono'},callback:v=>v>=1000?(v/1000).toFixed(0)+'k':v},border:{dash:[3,3]}}
-      }
-    }
-  });
+        callbacks:{label:c=>{const v=c.raw;return v>=1000?(v/1000).toFixed(2)+' MWh':Math.round(v)+' kWh';}}}},
+      scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{font:{size:9},maxRotation:25}},
+        y:{grid:{color:'rgba(255,255,255,0.04)'},border:{dash:[3,3]},
+          ticks:{font:{size:9,family:'JetBrains Mono'},callback:v=>v>=1000?(v/1000).toFixed(0)+'k':v}}}}});
 }
 
 function makeIrrChart(hours,vals){
   const ctx=document.getElementById('irrChart').getContext('2d');
   if(irrChart)irrChart.destroy();
-  const grad=ctx.createLinearGradient(0,0,0,100);
-  grad.addColorStop(0,'rgba(245,166,35,0.25)');
-  grad.addColorStop(1,'rgba(245,166,35,0)');
-  irrChart=new Chart(ctx,{
-    type:'line',
-    data:{labels:hours,datasets:[{
-      data:vals,borderColor:'#F5A623',backgroundColor:grad,
-      borderWidth:2,fill:true,tension:0.45,pointRadius:0
-    }]},
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{
-        backgroundColor:'rgba(5,9,15,0.95)',
-        borderColor:'rgba(255,255,255,0.1)',borderWidth:1,
-        callbacks:{label:c=>c.raw+' W/m²'}
-      }},
-      scales:{
-        x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{font:{size:9},maxTicksLimit:9}},
-        y:{grid:{color:'rgba(255,255,255,0.04)'},min:0,ticks:{font:{size:9,family:'JetBrains Mono'}},border:{dash:[3,3]}}
-      }
-    }
-  });
+  const grad=ctx.createLinearGradient(0,0,0,90);
+  grad.addColorStop(0,'rgba(245,166,35,0.3)');grad.addColorStop(1,'rgba(245,166,35,0)');
+  irrChart=new Chart(ctx,{type:'line',data:{labels:hours,datasets:[{data:vals,
+    borderColor:'#F5A623',backgroundColor:grad,borderWidth:2,fill:true,tension:0.45,pointRadius:0}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(5,9,15,0.95)',borderColor:'rgba(255,255,255,0.08)',borderWidth:1,
+        callbacks:{label:c=>c.raw+' W/m²'}}},
+      scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{font:{size:9},maxTicksLimit:9}},
+        y:{grid:{color:'rgba(255,255,255,0.04)'},min:0,border:{dash:[3,3]},ticks:{font:{size:9,family:'JetBrains Mono'}}}}}});
 }
-</script>
-<script>
-// ── WEATHER ───────────────────────────────────────────
+
 async function fetchWeather(){
   try{
     const r=await fetch('https://api.open-meteo.com/v1/forecast?latitude=34.6612&longitude=-106.7747&current=temperature_2m,relativehumidity_2m,cloudcover,wind_speed_10m,direct_radiation&hourly=direct_radiation&timezone=America%2FDenver&forecast_days=1');
-    const d=await r.json();
-    const c=d.current;
+    const d=await r.json();const c=d.current;
     document.getElementById('wTemp').textContent=cToF(c.temperature_2m)+'°';
     document.getElementById('wCloud').textContent=Math.round(c.cloudcover)+'%';
     document.getElementById('wWind').textContent=mpsToMph(c.wind_speed_10m);
     document.getElementById('wHum').textContent=Math.round(c.relativehumidity_2m)+'%';
     const irr=Math.round(c.direct_radiation||0);
     document.getElementById('irrVal').textContent=irr+' W/m²';
-    const pct=Math.min(100,Math.round(irr/1000*100));
-    document.getElementById('irrFill').style.width=pct+'%';
+    document.getElementById('irrFill').style.width=Math.min(100,Math.round(irr/1000*100))+'%';
     const hrs=d.hourly.time.map(t=>{const h=parseInt(t.split('T')[1]);return h===0?'12a':h<12?h+'a':h===12?'12p':(h-12)+'p';});
     makeIrrChart(hrs,d.hourly.direct_radiation.map(v=>Math.round(v||0)));
   }catch(e){console.error('weather',e);}
 }
 
-// ── SOLAR DATA ────────────────────────────────────────
 async function fetchData(){
   try{
     const[dr,hr]=await Promise.all([fetch('/data.json?t='+Date.now()),fetch('/history.json?t='+Date.now())]);
     const d=await dr.json();
     let hist=[];try{hist=await hr.json();}catch(e){}
     if(d.status!=='ok')return;
-
     const kw=parseFloat(d.currentKW)||0;
     document.getElementById('currentKW').textContent=d.currentKW||'—';
     document.getElementById('capFactor').textContent='Capacity Factor '+(d.capacityFactor||'—')+'%';
@@ -570,84 +286,55 @@ async function fetchData(){
     document.getElementById('capFill').style.width=capPct.toFixed(1)+'%';
     document.getElementById('capPct').textContent=capPct.toFixed(1)+'% of capacity';
     if(kw>0)document.getElementById('homesPowered').textContent='Powering approx. '+homes(kw*0.5).toLocaleString()+' homes right now';
-
-    function setStat(valId,unitId,subId,obj,subFn){
-      if(!obj)return;
-      document.getElementById(valId).textContent=obj.value;
-      document.getElementById(unitId).textContent=obj.unit;
-      if(subId)document.getElementById(subId).textContent=subFn(toKwh(obj.value,obj.unit));
-    }
-    setStat('todayVal','todayUnit','todayEquiv',d.todayKWh,k=>'Enough for '+homes(k).toLocaleString()+' homes today');
-    setStat('yestVal','yestUnit','yestEquiv',d.yesterdayKWh,k=>'Enough for '+homes(k).toLocaleString()+' homes');
-    setStat('last30Val','last30Unit','last30Equiv',d.last30Days,k=>'Avg '+homes(k/30).toLocaleString()+' homes per day');
-
-    if(d.co2OffsetTons30d){
-      document.getElementById('co2Val').textContent=d.co2OffsetTons30d;
-      document.getElementById('treesLine').textContent='Same as planting '+Math.round(parseFloat(d.co2OffsetTons30d)*48).toLocaleString()+' trees';
-    }
-    if(d.scrapedAt){
-      const t=new Date(d.scrapedAt);
-      document.getElementById('updatedAt').textContent='Updated '+t.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZoneName:'short'});
-    }
-
+    if(d.todayKWh){document.getElementById('todayVal').textContent=d.todayKWh.value;document.getElementById('todayUnit').textContent=d.todayKWh.unit;document.getElementById('todayEquiv').textContent='Enough for '+homes(toKwh(d.todayKWh.value,d.todayKWh.unit)).toLocaleString()+' homes today';}
+    if(d.yesterdayKWh){document.getElementById('yestVal').textContent=d.yesterdayKWh.value;document.getElementById('yestUnit').textContent=d.yesterdayKWh.unit;document.getElementById('yestEquiv').textContent='Enough for '+homes(toKwh(d.yesterdayKWh.value,d.yesterdayKWh.unit)).toLocaleString()+' homes';}
+    if(d.last30Days){document.getElementById('last30Val').textContent=d.last30Days.value;document.getElementById('last30Unit').textContent=d.last30Days.unit;document.getElementById('last30Equiv').textContent='Avg '+homes(toKwh(d.last30Days.value,d.last30Days.unit)/30).toLocaleString()+' homes per day';}
+    if(d.co2OffsetTons30d){document.getElementById('co2Val').textContent=d.co2OffsetTons30d;document.getElementById('treesLine').textContent='Same as planting '+Math.round(parseFloat(d.co2OffsetTons30d)*48).toLocaleString()+' trees';}
+    if(d.scrapedAt){const t=new Date(d.scrapedAt);document.getElementById('updatedAt').textContent='Updated '+t.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZoneName:'short'});}
     if(hist.length>0){
       const rec=hist.slice(-7);
-      const lbl=rec.map(h=>{const dt=new Date(h.date+'T12:00:00');return dt.toLocaleDateString('en-US',{weekday:'short',month:'numeric',day:'numeric'});});
-      makeProdChart(lbl,rec.map(h=>h.kwhProduced));
+      makeProdChart(rec.map(h=>{const dt=new Date(h.date+'T12:00:00');return dt.toLocaleDateString('en-US',{weekday:'short',month:'numeric',day:'numeric'});}),rec.map(h=>h.kwhProduced));
     }
     buildFacts(d);
   }catch(e){console.error('data',e);}
 }
-</script>
-<script>
-// ── TICKER ────────────────────────────────────────────
-let facts=['Loading...'],fi=0;
 
+let facts=['Loading...'],fi=0;
 function buildFacts(d){
   const kw=parseFloat(d.currentKW)||0;
   const tKwh=toKwh(d.todayKWh?.value,d.todayKWh?.unit);
   const l30=toKwh(d.last30Days?.value,d.last30Days?.unit);
   const co2=parseFloat(d.co2OffsetTons30d)||0;
   const f=[];
-
   if(kw>0){
-    f.push({t:`This solar farm is producing <span>${kw} kilowatts</span> right now — that's enough to power <span>${homes(kw*0.5).toLocaleString()} homes</span> at this very moment.`});
-    f.push({t:`<span>${kw} kW</span> of clean electricity is flowing from this field right now. That's ${Math.round(kw*1000)} watts — the same as running ${Math.round(kw*1000/100).toLocaleString()} lightbulbs simultaneously.`});
+    f.push(`This solar farm is producing <strong>${kw} kilowatts</strong> right now — enough to power <strong>${homes(kw*0.5).toLocaleString()} homes</strong> at this very moment.`);
+    f.push(`<strong>${kw} kW</strong> of electricity — that's the same as running <strong>${Math.round(kw*1000/100).toLocaleString()} lightbulbs</strong> at the same time, with zero fuel or pollution.`);
   }
   if(tKwh>0){
-    f.push({t:`Today, this solar field has produced <span>${d.todayKWh.value} ${d.todayKWh.unit}</span> of electricity — with zero fuel, zero pollution, and zero noise.`});
-    f.push({t:`Today's output could drive an electric car <span>${Math.round(tKwh*3.5).toLocaleString()} miles</span> — that's ${Math.round(tKwh*3.5/234)} trips from Belen to Albuquerque.`});
+    f.push(`Today's output could drive an electric car <strong>${Math.round(tKwh*3.5).toLocaleString()} miles</strong> — that's <strong>${Math.round(tKwh*3.5/234)} trips</strong> from Belen to Albuquerque.`);
+    f.push(`Today's <strong>${d.todayKWh.value} ${d.todayKWh.unit}</strong> of clean electricity was produced with zero fuel, zero exhaust, and zero moving parts.`);
   }
   if(l30>0){
-    f.push({t:`Over the last 30 days, this field produced <span>${d.last30Days.value} ${d.last30Days.unit}</span> — powering an average of <span>${homes(l30/30).toLocaleString()} homes every single day</span>.`});
-    f.push({t:`In 30 days, this project displaced <span>${co2.toFixed(0)} metric tons</span> of CO₂ — the same as taking <span>${Math.round(co2/4.6)} cars off the road</span> for a full month.`});
-    f.push({t:`The CO₂ saved in 30 days here is equivalent to planting <span>${Math.round(co2*48).toLocaleString()} trees</span> — and this clean energy keeps coming every single day.`});
+    f.push(`Over 30 days, this field powered an average of <strong>${homes(l30/30).toLocaleString()} homes every single day</strong> — all from sunlight hitting a field in Belen.`);
+    f.push(`The <strong>${co2.toFixed(0)} metric tons of CO₂</strong> offset here is like taking <strong>${Math.round(co2/4.6)} cars off the road</strong> for an entire month.`);
   }
-  f.push({t:`Solar panels have no moving parts and produce electricity silently. A solar cell can last <span>30+ years</span> with almost zero maintenance.`});
-  f.push({t:`New Mexico receives more solar energy per square foot than almost anywhere in the United States — making it one of the <span>best places on Earth</span> for solar power.`});
-  f.push({t:`The photoelectric effect — how solar panels work — was explained by <span>Albert Einstein</span> in 1905. He won the Nobel Prize for it in 1921.`});
-  f.push({t:`Community solar means the clean energy this field produces is <span>shared directly with local families and businesses</span> in the surrounding area.`});
-  f.push({t:`One hour of sunlight hitting Earth contains more energy than <span>all of humanity uses in an entire year</span>. Solar panels capture a small but growing slice of that.`});
+  f.push(`Solar panels have no moving parts and produce electricity in complete silence. A well-made panel can last <strong>30 years or more</strong>.`);
+  f.push(`New Mexico receives more solar energy per square foot than almost anywhere in the US — one reason this state is leading the clean energy transition.`);
+  f.push(`The photoelectric effect — how solar cells convert light to electricity — was discovered by <strong>Albert Einstein</strong>, who won the Nobel Prize for it in 1921.`);
+  f.push(`Community solar means the energy from this field is shared directly with <strong>local families and businesses</strong> through the PNM grid.`);
+  f.push(`One hour of sunlight hitting Earth contains more energy than all of humanity uses in <strong>an entire year</strong>. Solar captures a growing share of that.`);
   facts=f;
 }
-
 function showFact(){
   const el=document.getElementById('tickerMsg');
-  el.style.animation='none';
-  void el.offsetHeight;
-  el.style.animation='tickerIn 0.6s cubic-bezier(.4,0,.2,1)';
-  const fact=facts[fi%facts.length];
-  el.innerHTML=fact.t||fact;
-  fi++;
+  el.style.animation='none';void el.offsetHeight;
+  el.style.animation='tickerIn .6s cubic-bezier(.4,0,.2,1)';
+  el.innerHTML=facts[fi%facts.length];fi++;
 }
 
-// ── INIT ──────────────────────────────────────────────
-fetchData();
-fetchWeather();
-setInterval(fetchData,5*60*1000);
-setInterval(fetchWeather,10*60*1000);
-showFact();
-setInterval(showFact,10*1000);
+fetchData();fetchWeather();
+setInterval(fetchData,5*60*1000);setInterval(fetchWeather,10*60*1000);
+showFact();setInterval(showFact,10*1000);
 </script>
 </body>
 </html>
