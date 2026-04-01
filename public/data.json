@@ -1,1 +1,21 @@
-{"status":"loading"}
+{
+  "status": "ok",
+  "currentKW": "582.6",
+  "capacityFactor": "12",
+  "todayKWh": {
+    "value": "1.85",
+    "unit": "MWh"
+  },
+  "yesterdayKWh": {
+    "value": "4.77",
+    "unit": "MWh"
+  },
+  "last30Days": {
+    "value": "1.19",
+    "unit": "GWh"
+  },
+  "pvSizeAC": "4,975",
+  "pvSizeDC": "6,499",
+  "co2OffsetTons30d": "459.3",
+  "scrapedAt": "2026-04-01T18:43:45.761Z"
+}
