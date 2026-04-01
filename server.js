@@ -39,7 +39,6 @@ async function scrapeDashboard() {
     });
     const page = await context.newPage();
 
-    // Go straight to the dashboard - Auth0 will redirect to login if needed
     console.log('Going to dashboard URL...');
     await page.goto('https://apps.alsoenergy.com/powertrack/S72296/overview/dashboard', {
       waitUntil: 'domcontentloaded',
@@ -49,39 +48,43 @@ async function scrapeDashboard() {
     const currentUrl = page.url();
     console.log('Current URL:', currentUrl);
 
-    if (currentUrl.includes('login') || currentUrl.includes('auth0') || currentUrl.includes('Account')) {
+    if (currentUrl.includes('login') || currentUrl.includes('auth0') || currentUrl.includes('Account') || currentUrl.includes('stem.com')) {
       console.log('Redirected to login, authenticating...');
 
       // Step 1: Fill email
       await page.waitForSelector('input[type="email"], input[name="email"], input[name="username"]', { timeout: 30000 });
       await page.fill('input[type="email"], input[name="email"], input[name="username"]', process.env.POWERTRACK_USER || '');
       console.log('Email filled, clicking Continue...');
-
       await page.click('button[type="submit"], input[type="submit"]');
 
-      // Step 2: Wait for visible password field (skip hidden decoy)
+      // Step 2: Wait for visible password field
       await page.waitForSelector('input[type="password"]:not([aria-hidden="true"])', { timeout: 30000 });
       console.log('Password field visible...');
       await page.fill('input[type="password"]:not([aria-hidden="true"])', process.env.POWERTRACK_PASS || '');
       console.log('Password filled, submitting...');
-
       await page.click('button[type="submit"], input[type="submit"]');
 
-      // Wait for URL to leave auth/login pages (JS redirect, not HTTP)
-      await page.waitForURL(
-        url => !url.includes('auth0') && !url.includes('login') && !url.includes('Account'),
-        { timeout: 60000 }
-      );
-      console.log('Login complete! URL:', page.url());
+      // Wait for redirect away from login - poll URL every second
+      console.log('Waiting for login redirect...');
+      let waited = 0;
+      while (waited < 60000) {
+        await page.waitForTimeout(1000);
+        waited += 1000;
+        const url = page.url();
+        if (!url.includes('auth0') && !url.includes('login') && !url.includes('Account') && !url.includes('stem.com')) {
+          console.log('Login complete! URL:', url);
+          break;
+        }
+      }
 
-      // Navigate to dashboard after login
+      // Navigate to dashboard
       await page.goto('https://apps.alsoenergy.com/powertrack/S72296/overview/dashboard', {
         waitUntil: 'domcontentloaded',
         timeout: 60000
       });
     }
 
-    // Wait for dashboard widgets to load data
+    // Wait for dashboard widgets to load
     await page.waitForTimeout(7000);
     console.log('Dashboard loaded, scraping...');
 
