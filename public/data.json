@@ -1,17 +1,17 @@
 {
   "status": "ok",
-  "currentKW": "529.8",
-  "capacityFactor": "11",
+  "currentKW": "—",
+  "capacityFactor": "0",
   "todayKWh": {
-    "value": "683",
-    "unit": "kWh"
+    "value": "1.05",
+    "unit": "MWh"
   },
   "yesterdayKWh": {
     "value": "5.07",
     "unit": "MWh"
   },
   "last30Days": {
-    "value": "1.19",
+    "value": "1.15",
     "unit": "GWh"
   },
   "thisYear": {
@@ -24,15 +24,15 @@
   },
   "pvSizeAC": "4,975",
   "pvSizeDC": "6,499",
-  "co2OffsetTons30d": "457.8",
+  "co2OffsetTons30d": "443.5",
   "sunrise": "6:57 AM MDT",
   "sunset": "7:24 PM MDT",
-  "sunElevation": 21.2,
+  "sunElevation": 51,
   "weather": {
-    "tempF": 54,
+    "tempF": 66,
     "condition": "Clear",
     "windSpeed": 3,
-    "windDirection": 199,
+    "windDirection": 201,
     "icon": "sunny",
     "forecast": [
       {
@@ -44,19 +44,19 @@
       },
       {
         "date": "2026-04-04",
-        "high": 66,
+        "high": 68,
         "low": 43,
         "condition": "Clear",
         "icon": "sunny"
       },
       {
         "date": "2026-04-05",
-        "high": 72,
-        "low": 50,
+        "high": 68,
+        "low": 52,
         "condition": "Clear",
         "icon": "sunny"
       }
     ]
   },
-  "scrapedAt": "2026-04-02T14:41:59.695Z"
+  "scrapedAt": "2026-04-02T17:24:01.373Z"
 }
