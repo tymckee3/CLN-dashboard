@@ -450,13 +450,13 @@ showInsight();setInterval(showInsight,18*1000);
 // 1. Disable right-click context menu
 document.addEventListener('contextmenu',e=>e.preventDefault());
 
-// 2. Fullscreen on first tap (Chromebox kiosk)
-document.addEventListener('click',function goFS(){
+// 2. Fullscreen on tap — re-enters fullscreen after Esc
+document.addEventListener('click',()=>{
+  if(document.fullscreenElement||document.webkitFullscreenElement)return;
   const el=document.documentElement;
   if(el.requestFullscreen)el.requestFullscreen().catch(()=>{});
   else if(el.webkitRequestFullscreen)el.webkitRequestFullscreen();
-  document.removeEventListener('click',goFS);
-},{once:true});
+});
 
 // 3. Wake Lock API — keeps screen on without OS config
 let wakeLock=null;
