@@ -418,31 +418,48 @@ function animateValue(el,from,to,duration,fmt){
 }
 
 // ── SOLAR CURVE INTERPOLATION ────────────────────────────────
-// Between fetches, gently nudge the displayed kW based on the
-// solar production curve (sine of sun position). Changes are tiny
-// (±0.5-2% of current value) to feel alive without being fake.
+// Between fetches, project expected kW using the solar sine curve.
+// Uses ratio: expectedKW = lastKW × sin(now) / sin(fetchTime)
+// Smoothly eases toward the projection with micro-variation for realism.
 function startInterpolation(){
   if(interpTimer)clearInterval(interpTimer);
   interpTimer=setInterval(()=>{
-    if(lastKW<=0)return; // nighttime or no data
+    if(lastKW<=0||!lastFetchTime)return;
     const now=new Date(),nowH=now.getHours()+now.getMinutes()/60+now.getSeconds()/3600;
     const{rise,set}=sunCache;
     if(nowH<rise||nowH>set){displayKW=0;$('kwEl').textContent='0';return;}
-    // Where are we on the solar sine curve?
-    const pct=(nowH-rise)/(set-rise);
-    const sineNow=Math.sin(Math.PI*pct);
-    // Estimate what the curve "should" be doing — rising or falling
-    const pctAgo=(nowH-0.008-rise)/(set-rise); // ~30s ago
-    const sineAgo=Math.sin(Math.PI*pctAgo);
-    const trend=sineNow-sineAgo; // positive=rising, negative=falling
-    // Scale the nudge: max ±1.5% of lastKW per tick
-    const nudge=trend*lastKW*12; // amplify the tiny sine delta
-    const clamped=Math.max(-lastKW*0.015,Math.min(lastKW*0.015,nudge));
-    displayKW=Math.max(0,displayKW+clamped);
-    // Don't drift too far from the real value (max ±5%)
-    if(Math.abs(displayKW-lastKW)/lastKW>0.05)displayKW=lastKW+(displayKW>lastKW?lastKW*0.05:-lastKW*0.05);
+
+    // Sine curve position NOW
+    const pctNow=(nowH-rise)/(set-rise);
+    const sineNow=Math.sin(Math.PI*pctNow);
+
+    // Sine curve position at LAST FETCH
+    const fetchDate=new Date(lastFetchTime);
+    const fetchH=fetchDate.getHours()+fetchDate.getMinutes()/60+fetchDate.getSeconds()/3600;
+    const pctFetch=Math.max(0.001,Math.min(0.999,(fetchH-rise)/(set-rise)));
+    const sineFetch=Math.sin(Math.PI*pctFetch);
+
+    // Project expected kW via curve ratio
+    const expectedKW=sineFetch>0.02?lastKW*(sineNow/sineFetch):lastKW;
+
+    // Stale data guard: if fetch is >30 min old, trust the curve shape
+    // but reduce confidence (blend toward a general estimate)
+    const ageMin=(Date.now()-lastFetchTime)/60000;
+    const confidence=Math.max(0.5,1-ageMin/120); // drops to 50% after 1hr
+    const peakEstimate=lastKW/sineFetch; // estimated peak kW for today
+    const curveEstimate=peakEstimate*sineNow;
+    const target=confidence*expectedKW+(1-confidence)*curveEstimate;
+
+    // Smooth ease toward target (20% per tick ≈ smooth over ~2 min)
+    displayKW=displayKW+(target-displayKW)*0.2;
+
+    // Add micro-variation for realism (±0.3% random jitter)
+    displayKW*=1+(Math.random()-0.5)*0.006;
+
+    // Clamp: never negative, never above system capacity
+    displayKW=Math.max(0,Math.min(4975,displayKW));
+
     $('kwEl').textContent=displayKW.toFixed(1);
-    // Update ring + homes to match interpolated value
     const cp=Math.min(1,displayKW/4975);setRing(cp);
     $('capEl').textContent=(cp*100).toFixed(1)+'% capacity';
     if(displayKW>0)$('homesEl').textContent='≈ '+homes(displayKW*0.5).toLocaleString()+' homes';
