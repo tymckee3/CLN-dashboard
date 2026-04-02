@@ -14,7 +14,7 @@
   --t1:#EDF1FF;--t2:rgba(237,241,255,0.6);--t3:rgba(237,241,255,0.35);--t4:rgba(237,241,255,0.12);
   --mono:'SF Mono','Fira Code',monospace;
 }
-html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--t1);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--t1);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;cursor:none;-webkit-user-select:none;user-select:none;}
 body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;background-image:linear-gradient(rgba(240,160,0,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(240,160,0,0.04) 1px,transparent 1px),radial-gradient(circle at 50% 35%,rgba(240,160,0,0.09) 0%,transparent 55%);background-size:80px 80px,80px 80px,100% 100%;}
 body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;background-image:radial-gradient(circle,rgba(240,160,0,0.18) 1px,transparent 1px);background-size:80px 80px;}
 .root{position:relative;z-index:1;display:grid;height:100vh;grid-template-rows:58px 1fr 56px;padding:10px 22px 8px;gap:0;}
@@ -92,7 +92,10 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;back
 .bt-msg strong{color:var(--t1);font-weight:600;}
 .night{position:fixed;inset:0;z-index:100;background:rgba(3,6,9,.96);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;opacity:0;pointer-events:none;transition:opacity 1.5s;}
 .night.on{opacity:1;pointer-events:all;}
-.n-ttl{font-family:'Bebas Neue',sans-serif;font-size:2.8rem;letter-spacing:.1em;color:var(--t3);}
+.n-ttl{font-family:'Bebas Neue',sans-serif;font-size:2.8rem;letter-spacing:.1em;color:var(--t2);}
+.n-stat{text-align:center;}
+.n-stat-val{font-family:'Bebas Neue',sans-serif;font-size:2.4rem;color:var(--gold);line-height:1;letter-spacing:.03em;}
+.n-stat-lbl{font-size:.65rem;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--t3);margin-top:5px;}
 .n-sub{font-size:.82rem;color:var(--t3);letter-spacing:.1em;text-transform:uppercase;}
 .n-sr{font-family:var(--mono);font-size:.68rem;color:rgba(237,241,255,.22);margin-top:8px;}
 @keyframes spinSun{to{transform:rotate(360deg);}}
@@ -112,9 +115,11 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;back
     <line x1="3" y1="25" x2="9" y2="25" stroke="rgba(237,241,255,.3)" stroke-width="2" stroke-linecap="round"/>
     <line x1="41" y1="25" x2="47" y2="25" stroke="rgba(237,241,255,.3)" stroke-width="2" stroke-linecap="round"/>
   </svg>
-  <div class="n-ttl">Resting Until Sunrise</div>
-  <div class="n-sub">Solar production resumes at dawn</div>
-  <div class="n-sr" id="nightSr"></div>
+  <div style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:.25em;color:rgba(240,160,0,0.5);margin-bottom:18px;">Affordable Solar Group</div>
+  <div class="n-ttl">Cuidando Los Niños Community Solar</div>
+  <div class="n-sub">Resting Until Sunrise · Belen, New Mexico</div>
+  <div id="nightStats" style="display:flex;gap:40px;margin-top:24px;"></div>
+  <div class="n-sr" id="nightSr" style="margin-top:16px;"></div>
 </div>
 <div class="root">
 <header class="hdr">
@@ -137,7 +142,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;back
   </div>
   <div class="hdr-r">
     <div class="upd" id="updEl">—</div>
-    <div class="live"><div class="pip"></div>Live</div>
+    <div class="live"><div class="pip" id="livePip"></div><span id="liveTxt">Live</span></div>
     <div><div class="clk-t" id="clkEl">--:--</div><div class="clk-d" id="dayEl">—</div></div>
   </div>
 </header>
@@ -403,18 +408,68 @@ async function fetchData(){
     sp('ydN','ydU','ydS',d.yesterdayKWh,k=>'≈ '+homes(k).toLocaleString()+' homes');
     sp('l3N','l3U','l3S',d.last30Days,k=>'≈ '+homes(k/30).toLocaleString()+' homes/day');
     if(d.co2OffsetTons30d){$('co2N').textContent=d.co2OffsetTons30d;$('co2S').textContent='= '+Math.round(parseFloat(d.co2OffsetTons30d)*48).toLocaleString()+' trees';}
+    nightStatsCache={yesterdayKWh:d.yesterdayKWh,co2OffsetTons30d:d.co2OffsetTons30d};updateNightStats();
     if(d.scrapedAt){lastFetchTime=Date.now();}
     if(d.sunrise&&d.sunset){const rH=parseTimeStr(d.sunrise),sH=parseTimeStr(d.sunset);if(rH&&sH){sunCache={rise:rH,set:sH,riseStr:d.sunrise.replace(/\s*(MDT|MST)\s*/g,'').trim(),setStr:d.sunset.replace(/\s*(MDT|MST)\s*/g,'').trim()};updateSun();}}
     if(d.sunElevation)wxCache.elev=d.sunElevation;
     if(d.weather)applyWeather(d.weather);
     if(hist.length>0){const rec=hist.slice(-7);const lbl=rec.map(h=>{const dt=new Date(h.date+'T12:00:00');return dt.toLocaleDateString('en-US',{weekday:'short',month:'numeric',day:'numeric'});});makeCombo(lbl,rec.map(h=>h.kwhProduced));}
     buildStories(d);buildInsights(d);
-  }catch(e){console.error(e);}
+  }catch(e){console.error(e);throw e;}
 }
 fetchData();fetchWx();
 setInterval(fetchData,60*1000);setInterval(fetchWx,60*60*1000);
 showStory();setInterval(showStory,14*1000);
 showInsight();setInterval(showInsight,18*1000);
+
+// ── KIOSK HARDENING ──────────────────────────────────────────
+
+// 1. Disable right-click context menu
+document.addEventListener('contextmenu',e=>e.preventDefault());
+
+// 2. Fullscreen on first tap (Chromebox kiosk)
+document.addEventListener('click',function goFS(){
+  const el=document.documentElement;
+  if(el.requestFullscreen)el.requestFullscreen().catch(()=>{});
+  else if(el.webkitRequestFullscreen)el.webkitRequestFullscreen();
+  document.removeEventListener('click',goFS);
+},{once:true});
+
+// 3. Wake Lock API — keeps screen on without OS config
+let wakeLock=null;
+async function requestWake(){
+  try{if('wakeLock' in navigator){wakeLock=await navigator.wakeLock.request('screen');
+    wakeLock.addEventListener('release',()=>{setTimeout(requestWake,1000);});}}catch(e){}}
+requestWake();
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')requestWake();});
+
+// 4. Auto-reload every 30 min (picks up deploys + clears memory)
+setTimeout(()=>location.reload(),30*60*1000);
+
+// 5. Connectivity watchdog — turns Live dot red on repeated failures
+let fetchFails=0;
+function updateConnStatus(ok){
+  const pip=$('livePip'),txt=$('liveTxt');
+  if(ok){fetchFails=0;pip.style.background='var(--green)';pip.style.boxShadow='0 0 8px var(--green)';txt.textContent='Live';}
+  else{fetchFails++;if(fetchFails>=3){pip.style.background='#E04040';pip.style.boxShadow='0 0 8px #E04040';txt.textContent='Reconnecting';}}
+}
+
+// 6. Patch fetchData for error recovery
+const _origFetchData=fetchData;
+fetchData=async function(){try{await _origFetchData();updateConnStatus(true);}catch(e){console.error('Fetch failed:',e);updateConnStatus(false);}};
+
+// 7. Night screen stats
+let nightStatsCache={};
+function updateNightStats(){
+  const ns=$('nightStats');if(!ns)return;
+  const d=nightStatsCache;if(!d.yesterdayKWh)return;
+  const yVal=d.yesterdayKWh?.value||'—',yUnit=d.yesterdayKWh?.unit||'';
+  const co2=d.co2OffsetTons30d||'—';
+  const yKwh=toKwh(yVal,yUnit);
+  ns.innerHTML=`<div class="n-stat"><div class="n-stat-val">${yVal} ${yUnit}</div><div class="n-stat-lbl">Yesterday</div></div>`+
+    `<div class="n-stat"><div class="n-stat-val">${homes(yKwh).toLocaleString()}</div><div class="n-stat-lbl">Homes Powered</div></div>`+
+    `<div class="n-stat"><div class="n-stat-val">${co2}</div><div class="n-stat-lbl">Tons CO₂ / 30d</div></div>`;
+}
 </script>
 </body>
 </html>
