@@ -482,15 +482,32 @@ async function fetchData(){
     if(d.status!=='ok')return;
     lastFetchTime=Date.now();
     const rawKW=parseFloat(d.currentKW);
-    const kw=isNaN(rawKW)?0:rawKW;
+    let kw=isNaN(rawKW)?0:rawKW;
     // Detect API dropout: kW is 0 but it's daytime and today has production
     const nowH=new Date().getHours()+new Date().getMinutes()/60;
     const isDaytime=nowH>=sunCache.rise&&nowH<=sunCache.set;
-    const todayHasProduction=toKwh(d.todayKWh?.value,d.todayKWh?.unit)>0;
-    const apiDropout=kw===0&&isDaytime&&todayHasProduction&&lastKW>0;
+    const todayKwh=toKwh(d.todayKWh?.value,d.todayKWh?.unit);
+    const apiDropout=kw===0&&isDaytime&&todayKwh>0;
     if(apiDropout){
-      // Keep lastKW from previous good reading — interpolation will handle it
-      console.log('API returned 0 kW during daytime with production — keeping last good reading:',lastKW);
+      if(lastKW>0){
+        // Have a previous good reading — interpolation handles it
+        console.log('API dropout — keeping last good kW:',lastKW);
+      }else{
+        // No previous reading — estimate from today's cumulative energy + solar curve
+        const dayLen=sunCache.set-sunCache.rise; // hours of daylight
+        const pct=Math.max(0.01,(nowH-sunCache.rise)/dayLen);
+        // Integral of sin(πt) from 0 to pct = (1-cos(πp))/π
+        // todayKwh = peakKW × dayLen × (1-cos(πp))/π
+        const integral=(1-Math.cos(Math.PI*pct))/Math.PI;
+        const peakKW=integral>0.01?todayKwh/(dayLen*integral):todayKwh;
+        kw=Math.max(0,peakKW*Math.sin(Math.PI*pct));
+        console.log('Estimated kW from todayKWh:',kw.toFixed(1),'(peak est:',peakKW.toFixed(0)+')');
+        lastKW=kw;displayKW=kw;
+        $('kwEl').textContent=kw.toFixed(1);
+        const cp=Math.min(1,kw/4975);setRing(cp);
+        $('capEl').textContent=(cp*100).toFixed(1)+'% capacity';
+        if(kw>0)$('homesEl').textContent='≈ '+homes(kw*0.5).toLocaleString()+' homes';
+      }
     }else{
       // Normal update: animate from displayed value to new real value
       const oldKW=displayKW||lastKW||0;
