@@ -14,31 +14,59 @@ const path = require('path');
       userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     });
 
-    const page = await context.newPage();
+    let page = await context.newPage();
 
-    // ── LOGIN ──────────────────────────────────────────────────
-    await page.goto('https://apps.alsoenergy.com/Account/login', {
-      waitUntil: 'domcontentloaded', timeout: 60000
-    });
-    await page.waitForSelector('input[name="username"], input[type="email"]', { timeout: 15000 });
-    await page.fill('input[name="username"], input[type="email"]', process.env.POWERTRACK_USER || '');
-    await page.click('button:has-text("Continue")');
-    await page.waitForURL('**/login/password**', { timeout: 15000 });
-    await page.waitForTimeout(1000);
-    const pwd = page.locator('input[type="password"]').first();
-    await pwd.waitFor({ state: 'visible', timeout: 10000 });
-    await pwd.fill(process.env.POWERTRACK_PASS || '');
-    await page.click('button:has-text("Continue")');
-
-    console.log('Waiting for login redirect...');
+    // ── LOGIN (with retry) ───────────────────────────────────
+    const MAX_LOGIN_ATTEMPTS = 3;
     let loggedIn = false;
-    for (let i = 0; i < 25; i++) {
-      await page.waitForTimeout(2000);
-      const url = page.url();
-      console.log(`[${(i+1)*2}s] ${url.substring(0, 60)}`);
-      if (url.includes('alsoenergy.com/powertrack')) { loggedIn = true; break; }
+
+    for (let attempt = 1; attempt <= MAX_LOGIN_ATTEMPTS; attempt++) {
+      try {
+        console.log(`Login attempt ${attempt}/${MAX_LOGIN_ATTEMPTS}...`);
+        await page.goto('https://apps.alsoenergy.com/Account/login', {
+          waitUntil: 'domcontentloaded', timeout: 60000
+        });
+        await page.waitForSelector('input[name="username"], input[type="email"]', { timeout: 30000 });
+        await page.fill('input[name="username"], input[type="email"]', process.env.POWERTRACK_USER || '');
+        await page.click('button:has-text("Continue")');
+
+        // Wait for password page — Auth0 may redirect or show inline
+        try {
+          await page.waitForURL('**/login/password**', { timeout: 20000 });
+        } catch (e) {
+          // Password field might appear on the same page (Auth0 flow variation)
+          console.log('URL redirect to /login/password did not happen, checking for inline password field...');
+        }
+
+        await page.waitForTimeout(1500);
+        const pwd = page.locator('input[type="password"]').first();
+        await pwd.waitFor({ state: 'visible', timeout: 20000 });
+        await pwd.fill(process.env.POWERTRACK_PASS || '');
+        await page.click('button:has-text("Continue")');
+
+        console.log('Waiting for login redirect...');
+        for (let i = 0; i < 30; i++) {
+          await page.waitForTimeout(2000);
+          const url = page.url();
+          console.log(`[${(i+1)*2}s] ${url.substring(0, 60)}`);
+          if (url.includes('alsoenergy.com/powertrack')) { loggedIn = true; break; }
+        }
+        if (loggedIn) break;
+        throw new Error('Login redirect timed out');
+
+      } catch (loginErr) {
+        console.error(`Login attempt ${attempt} failed:`, loginErr.message);
+        if (attempt < MAX_LOGIN_ATTEMPTS) {
+          console.log(`Retrying in ${attempt * 5} seconds...`);
+          await page.waitForTimeout(attempt * 5000);
+          // Fresh page for retry
+          await page.close();
+          page = await context.newPage();
+        } else {
+          throw new Error(`Login failed after ${MAX_LOGIN_ATTEMPTS} attempts: ${loginErr.message}`);
+        }
+      }
     }
-    if (!loggedIn) throw new Error('Login timed out');
     console.log('Logged in!');
 
     // ── HELPER: authenticated fetch ────────────────────────────
