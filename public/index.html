@@ -97,12 +97,12 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;back
 .n-countdown{display:flex;align-items:center;gap:6px;margin-top:28px;}
 .n-cd-group{display:flex;flex-direction:column;align-items:center;gap:4px;}
 .n-cd-digits{display:flex;gap:4px;}
-.n-cd-card{position:relative;width:62px;height:86px;background:linear-gradient(180deg,#0e1318 0%,#080b0f 49.9%,#060a0e 50.1%,#0a0e13 100%);border-radius:8px;border:1px solid rgba(237,170,30,0.12);overflow:hidden;display:flex;align-items:center;justify-content:center;}
+.n-cd-card{position:relative;width:78px;height:108px;background:linear-gradient(180deg,#0e1318 0%,#080b0f 49.9%,#060a0e 50.1%,#0a0e13 100%);border-radius:8px;border:1px solid rgba(237,170,30,0.12);overflow:hidden;display:flex;align-items:center;justify-content:center;}
 .n-cd-card::after{content:'';position:absolute;left:4px;right:4px;top:50%;height:1px;background:rgba(0,0,0,0.6);}
-.n-cd-num{font-family:'Bebas Neue',sans-serif;font-size:3.8rem;color:var(--gold);line-height:1;letter-spacing:.03em;text-shadow:0 0 20px rgba(237,170,30,0.3),0 1px 3px rgba(0,0,0,.7);position:relative;z-index:1;transition:transform 0.15s ease-out,opacity 0.15s ease-out;}
+.n-cd-num{font-family:'Bebas Neue',sans-serif;font-size:4.8rem;color:var(--gold);line-height:1;letter-spacing:.03em;text-shadow:0 0 20px rgba(237,170,30,0.3),0 1px 3px rgba(0,0,0,.7);position:relative;z-index:1;transition:transform 0.15s ease-out,opacity 0.15s ease-out;}
 .n-cd-num.tick{animation:flipTick 0.4s ease-out;}
 .n-cd-lbl{font-size:.6rem;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--t3);}
-.n-cd-sep{font-family:'Bebas Neue',sans-serif;font-size:3rem;color:rgba(237,170,30,0.35);line-height:1;margin:0 2px;padding-bottom:18px;animation:colonPulse 1s ease-in-out infinite;}
+.n-cd-sep{font-family:'Bebas Neue',sans-serif;font-size:4rem;color:rgba(237,170,30,0.35);line-height:1;margin:0 2px;padding-bottom:18px;animation:colonPulse 1s ease-in-out infinite;}
 @keyframes flipTick{0%{transform:scaleY(0.7) translateY(-4px);opacity:0.5;}40%{transform:scaleY(1.05) translateY(1px);opacity:1;}100%{transform:scaleY(1) translateY(0);opacity:1;}}
 @keyframes colonPulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
 .n-cd-msg{font-size:.85rem;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--t2);margin-top:14px;}
@@ -137,8 +137,6 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;back
     <div class="n-cd-group"><div class="n-cd-digits"><div class="n-cd-card"><span class="n-cd-num" id="cdH0">0</span></div><div class="n-cd-card"><span class="n-cd-num" id="cdH1">0</span></div></div><div class="n-cd-lbl">Hours</div></div>
     <div class="n-cd-sep">:</div>
     <div class="n-cd-group"><div class="n-cd-digits"><div class="n-cd-card"><span class="n-cd-num" id="cdM0">0</span></div><div class="n-cd-card"><span class="n-cd-num" id="cdM1">0</span></div></div><div class="n-cd-lbl">Minutes</div></div>
-    <div class="n-cd-sep">:</div>
-    <div class="n-cd-group"><div class="n-cd-digits"><div class="n-cd-card"><span class="n-cd-num" id="cdS0">0</span></div><div class="n-cd-card"><span class="n-cd-num" id="cdS1">0</span></div></div><div class="n-cd-lbl">Seconds</div></div>
   </div>
   <div class="n-sr" id="nightSr" style="margin-top:14px;font-size:.75rem;color:var(--t3);letter-spacing:.1em;"></div>
 </div>
@@ -493,8 +491,7 @@ function updateCountdown(){
   const s=totalSec%60;
   const digits={
     h0:String(Math.floor(h/10)),h1:String(h%10),
-    m0:String(Math.floor(m/10)),m1:String(m%10),
-    s0:String(Math.floor(s/10)),s1:String(s%10)
+    m0:String(Math.floor(m/10)),m1:String(m%10)
   };
   for(const[key,val] of Object.entries(digits)){
     const el=$('cd'+key.toUpperCase());
@@ -507,7 +504,7 @@ function updateCountdown(){
     }
   }
 }
-setInterval(updateCountdown,1000);
+setInterval(updateCountdown,60000);
 updateCountdown();
 
 // 8. Night screen stats
