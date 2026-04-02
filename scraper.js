@@ -156,9 +156,10 @@ const path = require('path');
       return parseFloat(String(val).replace(',', ''));
     }
 
-    // Production data
-    const kw = prod?.power ? parseFloat(prod.power).toFixed(1) : '—';
-    const capacityFactor = prod?.systemSize ? Math.round(parseFloat(prod.power) / prod.systemSize * 100) : '—';
+    // Production data — treat 0 as valid (nighttime), only '—' for null/undefined
+    const rawPower = prod?.power;
+    const kw = (rawPower !== null && rawPower !== undefined) ? parseFloat(rawPower).toFixed(1) : '—';
+    const capacityFactor = (prod?.systemSize && rawPower != null) ? Math.round(parseFloat(rawPower) / prod.systemSize * 100) : '—';
     const todayKwh = prod?.today || 0;
     const yesterdayKwh = prod?.yesterday || 0;
     const thirtyDayKwh = prod?.energyThirtyDays || 0;
