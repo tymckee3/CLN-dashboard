@@ -117,7 +117,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;back
 @keyframes spinSun{to{transform:rotate(360deg);}}
 @keyframes pipBlink{0%,100%{box-shadow:0 0 8px var(--green);}50%{box-shadow:none;opacity:.4;}}
 @keyframes glowBreathe{0%,100%{opacity:.6;}50%{opacity:1;}}
-@keyframes numBreathe{0%,100%{text-shadow:0 0 60px rgba(237,170,30,.55);}50%{text-shadow:0 0 110px rgba(237,170,30,.9);}}
+@keyframes numBreathe{0%,100%{text-shadow:0 0 60px rgba(237,170,30,.55),0 1px 3px rgba(0,0,0,.6);}50%{text-shadow:0 0 110px rgba(237,170,30,.9),0 1px 3px rgba(0,0,0,.6);}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(5px);}to{opacity:1;transform:translateY(0);}}
 @keyframes arcGlow{0%,100%{filter:drop-shadow(0 0 6px #EDAA1E);}50%{filter:drop-shadow(0 0 16px #EDAA1E);}}
 </style>
@@ -280,8 +280,12 @@ function updateSun(){
     const pStr=pts.join(' ');
     $('arcP').setAttribute('points',pStr);$('arcG').setAttribute('points',pStr);
   }else{$('arcP').setAttribute('points','');$('arcG').setAttribute('points','');}
+  const wasNight=$('nightEl').classList.contains('on');
   $('nightEl').classList.toggle('on',isNight);
   if(isNight)$('nightSr').textContent='Sunrise at '+riseStr;
+  // Start/stop interpolation timer on day/night transitions
+  if(isNight&&!wasNight&&interpTimer){clearInterval(interpTimer);interpTimer=null;}
+  if(!isNight&&wasNight)startInterpolation();
 }
 updateSun();setInterval(updateSun,15000);
 function setRing(p){const c=527.8,o=c*(1-Math.min(1,p));$('ringFill').style.strokeDashoffset=o;$('ringGlow').style.strokeDashoffset=o;}
@@ -432,16 +436,20 @@ async function fetchData(){
     sp('l3N','l3U','l3S',d.last30Days,k=>'≈ '+homes(k/30).toLocaleString()+' homes/day');
     if(d.co2OffsetTons30d){$('co2N').textContent=d.co2OffsetTons30d;$('co2S').textContent='= '+Math.round(parseFloat(d.co2OffsetTons30d)*48).toLocaleString()+' trees';}
     nightStatsCache={yesterdayKWh:d.yesterdayKWh,co2OffsetTons30d:d.co2OffsetTons30d};updateNightStats();
-    if(d.scrapedAt){lastFetchTime=Date.now();}
     if(d.sunrise&&d.sunset){const rH=parseTimeStr(d.sunrise),sH=parseTimeStr(d.sunset);if(rH&&sH){sunCache={rise:rH,set:sH,riseStr:d.sunrise.replace(/\s*(MDT|MST)\s*/g,'').trim(),setStr:d.sunset.replace(/\s*(MDT|MST)\s*/g,'').trim()};updateSun();}}
     if(d.sunElevation)wxCache.elev=d.sunElevation;
     if(d.weather)applyWeather(d.weather);
     if(hist.length>0){const rec=hist.slice(-7);const lbl=rec.map(h=>{const dt=new Date(h.date+'T12:00:00');return dt.toLocaleDateString('en-US',{weekday:'short',month:'numeric',day:'numeric'});});makeCombo(lbl,rec.map(h=>h.kwhProduced));}
     buildStories(d);buildInsights(d);
-  }catch(e){console.error(e);throw e;}
+  }catch(e){
+    console.error(e);
+    // If this is the first load (still showing "Loading..."), show error state and schedule fast retry
+    if($('stEl').textContent==='Loading...')$('stEl').innerHTML='Connecting to solar array&hellip;';
+    if($('btmEl').textContent==='Loading...')$('btmEl').textContent='Waiting for data — will retry shortly';
+    throw e;
+  }
 }
-fetchData();fetchWx();
-setInterval(fetchData,60*1000);setInterval(fetchWx,60*60*1000);
+fetchWx();
 showStory();setInterval(showStory,14*1000);
 showInsight();setInterval(showInsight,18*1000);
 
@@ -481,8 +489,12 @@ function updateConnStatus(ok){
 const _origFetchData=fetchData;
 fetchData=async function(){try{await _origFetchData();updateConnStatus(true);}catch(e){console.error('Fetch failed:',e);updateConnStatus(false);}};
 
+// Initial fetch (after wrapper so error recovery works from first load)
+fetchData();
+setInterval(fetchData,60*1000);setInterval(fetchWx,60*60*1000);
+
 // 7. Sunrise countdown — flip-clock style
-let prevCD={h0:'',h1:'',m0:'',m1:'',s0:'',s1:''};
+let prevCD={h0:'',h1:'',m0:'',m1:''};
 function updateCountdown(){
   const now=new Date(),nowH=now.getHours()+now.getMinutes()/60+now.getSeconds()/3600;
   const{rise}=sunCache;
