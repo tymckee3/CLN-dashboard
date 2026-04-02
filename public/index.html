@@ -55,7 +55,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;back
 .r-cap{font-size:clamp(.8rem,1.4vw,1.1rem);font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);margin-top:6px;}
 .r-homes{font-size:clamp(.85rem,1.5vw,1.15rem);font-weight:600;color:var(--gold);opacity:.85;margin-top:4px;}
 .story-zone{width:100%;text-align:center;padding:5px 16px 0;flex-shrink:0;}
-.s-text{font-size:clamp(1.3rem,2.5vw,1.85rem);font-weight:300;line-height:1.45;color:var(--t2);max-width:680px;margin:0 auto;transition:opacity .55s ease;}
+.s-text{font-size:clamp(1.3rem,2.5vw,1.85rem);font-weight:300;line-height:1.45;color:var(--t2);max-width:100%;margin:0 auto;white-space:nowrap;transition:opacity .55s ease;}
 .s-text strong{color:var(--t1);font-weight:600;}
 .s-big{font-family:'Bebas Neue',sans-serif;font-size:clamp(1.6rem,3.3vw,2.8rem);color:var(--gold);letter-spacing:.04em;line-height:1;display:inline-block;vertical-align:middle;margin:0 3px;text-shadow:0 1px 3px rgba(0,0,0,.5);}
 .s-note{font-size:.85rem;letter-spacing:.15em;text-transform:uppercase;color:var(--t3);margin-top:6px;transition:opacity .55s ease;}
@@ -478,7 +478,11 @@ setInterval(()=>{
 async function fetchData(){
   try{
     const[dr,hr]=await Promise.all([fetch('/data.json?t='+Date.now()),fetch('/history.json?t='+Date.now())]);
-    const d=await dr.json();let hist=[];try{hist=await hr.json();}catch(e){}
+    const d=await dr.json();
+    let hist=[];
+    try{hist=await hr.json();}catch(e){}
+    // Retry history once if it failed (sometimes CDN serves stale response)
+    if(!Array.isArray(hist)||hist.length===0){try{const hr2=await fetch('/history.json?t='+Date.now()+'r');hist=await hr2.json();}catch(e){}}
     if(d.status!=='ok')return;
     lastFetchTime=Date.now();
     const rawKW=parseFloat(d.currentKW);

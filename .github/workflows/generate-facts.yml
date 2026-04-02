@@ -2,8 +2,8 @@ name: Generate Solar Facts
 
 on:
   schedule:
-    - cron: '0 6 * * *'    # Daily at 6 AM UTC (midnight MDT)
-  workflow_dispatch:         # Manual trigger
+    - cron: '0 6 * * *'  # Daily at 6 AM UTC (midnight MDT)
+  workflow_dispatch:       # Manual trigger
 
 permissions:
   contents: write
@@ -13,10 +13,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
 
       - name: Generate facts via Claude API
         env:
