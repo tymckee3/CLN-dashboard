@@ -1,6 +1,6 @@
 {
   "status": "ok",
-  "currentKW": "—",
+  "currentKW": "\u2014",
   "capacityFactor": "0",
   "todayKWh": {
     "value": "1.05",
@@ -58,5 +58,7 @@
       }
     ]
   },
-  "scrapedAt": "2026-04-02T18:10:57.510Z"
+  "scrapedAt": "2026-04-02T18:10:57.510Z",
+  "lastGoodKW": "529.8",
+  "lastGoodKWTime": "2026-04-02T14:41:59.695Z"
 }
