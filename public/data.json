@@ -27,12 +27,12 @@
   "co2OffsetTons30d": "443.5",
   "sunrise": "6:57 AM MDT",
   "sunset": "7:24 PM MDT",
-  "sunElevation": 54.6,
+  "sunElevation": 55.8,
   "weather": {
-    "tempF": 66,
+    "tempF": 68,
     "condition": "Clear",
-    "windSpeed": 1,
-    "windDirection": 175,
+    "windSpeed": 2,
+    "windDirection": 186,
     "icon": "sunny",
     "forecast": [
       {
@@ -58,5 +58,5 @@
       }
     ]
   },
-  "scrapedAt": "2026-04-02T17:50:57.741Z"
+  "scrapedAt": "2026-04-02T18:01:03.201Z"
 }
