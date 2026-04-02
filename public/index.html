@@ -92,7 +92,10 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;back
 .bt-msg strong{color:var(--t1);font-weight:600;}
 .night{position:fixed;inset:0;z-index:100;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;opacity:0;pointer-events:none;transition:opacity 5s ease-in-out;}
 .night.on{opacity:1;pointer-events:all;}
-.night::before{content:'';position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(237,170,30,0.035) 1px,transparent 1px),linear-gradient(90deg,rgba(237,170,30,0.035) 1px,transparent 1px),radial-gradient(circle,rgba(237,170,30,0.12) 1px,transparent 1px);background-size:80px 80px,80px 80px,80px 80px;mask-image:linear-gradient(90deg,rgba(0,0,0,0.6) 0%,transparent 30%,transparent 70%,rgba(0,0,0,0.6) 100%);-webkit-mask-image:linear-gradient(90deg,rgba(0,0,0,0.6) 0%,transparent 30%,transparent 70%,rgba(0,0,0,0.6) 100%);}
+.night-grid{position:absolute;inset:0;pointer-events:none;z-index:0;}
+.night-grid-lines{position:absolute;inset:0;background-image:linear-gradient(rgba(237,170,30,0.06) 1px,transparent 1px),linear-gradient(90deg,rgba(237,170,30,0.06) 1px,transparent 1px);background-size:80px 80px;-webkit-mask-image:linear-gradient(90deg,black 0%,black 10%,transparent 26%,transparent 74%,black 90%,black 100%);mask-image:linear-gradient(90deg,black 0%,black 10%,transparent 26%,transparent 74%,black 90%,black 100%);}
+.night-grid-dots{position:absolute;inset:0;background-image:radial-gradient(circle,rgba(237,170,30,0.2) 1.2px,transparent 1.2px);background-size:80px 80px;-webkit-mask-image:linear-gradient(90deg,black 0%,black 10%,transparent 26%,transparent 74%,black 90%,black 100%);mask-image:linear-gradient(90deg,black 0%,black 10%,transparent 26%,transparent 74%,black 90%,black 100%);}
+.night>*:not(.night-grid){position:relative;z-index:1;}
 .n-ttl{font-family:'Bebas Neue',sans-serif;font-size:2.8rem;letter-spacing:.1em;color:var(--t2);}
 .n-countdown{display:flex;align-items:center;gap:6px;margin-top:28px;}
 .n-cd-group{display:flex;flex-direction:column;align-items:center;gap:4px;}
@@ -121,6 +124,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;back
 </head>
 <body>
 <div class="night" id="nightEl">
+  <div class="night-grid"><div class="night-grid-lines"></div><div class="night-grid-dots"></div></div>
   <svg width="50" height="50" viewBox="0 0 50 50" fill="none" style="opacity:.3">
     <circle cx="25" cy="25" r="10" fill="none" stroke="rgba(237,241,255,.5)" stroke-width="2"/>
     <line x1="25" y1="3" x2="25" y2="9" stroke="rgba(237,241,255,.3)" stroke-width="2" stroke-linecap="round"/>
