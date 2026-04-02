@@ -37,7 +37,13 @@
   },
   {
     "date": "2026-04-01",
-    "kwhProduced": 4198,
+    "kwhProduced": 4768,
+    "unit": "kWh",
+    "source": "alsoenergy"
+  },
+  {
+    "date": "2026-04-02",
+    "kwhProduced": 4591,
     "unit": "kWh",
     "source": "alsoenergy"
   }

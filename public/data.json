@@ -1,9 +1,9 @@
 {
   "status": "ok",
-  "currentKW": "491.9",
+  "currentKW": "480.9",
   "capacityFactor": "10",
   "todayKWh": {
-    "value": "4.20",
+    "value": "4.59",
     "unit": "MWh"
   },
   "yesterdayKWh": {
@@ -25,14 +25,14 @@
   "pvSizeAC": "4,975",
   "pvSizeDC": "6,499",
   "co2OffsetTons30d": "457.8",
-  "sunrise": "6:58 AM MDT",
+  "sunrise": "6:57 AM MDT",
   "sunset": "7:24 PM MDT",
-  "sunElevation": 27.4,
+  "sunElevation": 16.3,
   "weather": {
-    "tempF": 64,
+    "tempF": 66,
     "condition": "Clear",
-    "windSpeed": 7,
-    "windDirection": 264,
+    "windSpeed": 6,
+    "windDirection": 260,
     "icon": "sunny",
     "forecast": [
       {
@@ -58,5 +58,5 @@
       }
     ]
   },
-  "scrapedAt": "2026-04-01T23:08:31.261Z"
+  "scrapedAt": "2026-04-02T00:03:32.198Z"
 }
