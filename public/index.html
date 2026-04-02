@@ -93,6 +93,18 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;back
 .night{position:fixed;inset:0;z-index:100;background:rgba(3,6,9,.96);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;opacity:0;pointer-events:none;transition:opacity 1.5s;}
 .night.on{opacity:1;pointer-events:all;}
 .n-ttl{font-family:'Bebas Neue',sans-serif;font-size:2.8rem;letter-spacing:.1em;color:var(--t2);}
+.n-countdown{display:flex;align-items:center;gap:6px;margin-top:28px;}
+.n-cd-group{display:flex;flex-direction:column;align-items:center;gap:4px;}
+.n-cd-digits{display:flex;gap:4px;}
+.n-cd-card{position:relative;width:62px;height:86px;background:linear-gradient(180deg,#0e1318 0%,#080b0f 49.9%,#060a0e 50.1%,#0a0e13 100%);border-radius:8px;border:1px solid rgba(237,170,30,0.12);overflow:hidden;display:flex;align-items:center;justify-content:center;}
+.n-cd-card::after{content:'';position:absolute;left:4px;right:4px;top:50%;height:1px;background:rgba(0,0,0,0.6);}
+.n-cd-num{font-family:'Bebas Neue',sans-serif;font-size:3.8rem;color:var(--gold);line-height:1;letter-spacing:.03em;text-shadow:0 0 20px rgba(237,170,30,0.3),0 1px 3px rgba(0,0,0,.7);position:relative;z-index:1;transition:transform 0.15s ease-out,opacity 0.15s ease-out;}
+.n-cd-num.tick{animation:flipTick 0.4s ease-out;}
+.n-cd-lbl{font-size:.6rem;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--t3);}
+.n-cd-sep{font-family:'Bebas Neue',sans-serif;font-size:3rem;color:rgba(237,170,30,0.35);line-height:1;margin:0 2px;padding-bottom:18px;animation:colonPulse 1s ease-in-out infinite;}
+@keyframes flipTick{0%{transform:scaleY(0.7) translateY(-4px);opacity:0.5;}40%{transform:scaleY(1.05) translateY(1px);opacity:1;}100%{transform:scaleY(1) translateY(0);opacity:1;}}
+@keyframes colonPulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
+.n-cd-msg{font-size:.85rem;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--t2);margin-top:14px;}
 .n-stat{text-align:center;}
 .n-stat-val{font-family:'Bebas Neue',sans-serif;font-size:2.4rem;color:var(--gold);line-height:1;letter-spacing:.03em;text-shadow:0 1px 4px rgba(0,0,0,.5);}
 .n-stat-lbl{font-size:.65rem;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--t3);margin-top:5px;}
@@ -119,7 +131,15 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;back
   <div class="n-ttl">Cuidando Los Niños Community Solar</div>
   <div class="n-sub">Resting Until Sunrise · Belen, New Mexico</div>
   <div id="nightStats" style="display:flex;gap:40px;margin-top:24px;"></div>
-  <div class="n-sr" id="nightSr" style="margin-top:16px;"></div>
+  <div class="n-cd-msg">Back online in</div>
+  <div class="n-countdown" id="nightCountdown">
+    <div class="n-cd-group"><div class="n-cd-digits"><div class="n-cd-card"><span class="n-cd-num" id="cdH0">0</span></div><div class="n-cd-card"><span class="n-cd-num" id="cdH1">0</span></div></div><div class="n-cd-lbl">Hours</div></div>
+    <div class="n-cd-sep">:</div>
+    <div class="n-cd-group"><div class="n-cd-digits"><div class="n-cd-card"><span class="n-cd-num" id="cdM0">0</span></div><div class="n-cd-card"><span class="n-cd-num" id="cdM1">0</span></div></div><div class="n-cd-lbl">Minutes</div></div>
+    <div class="n-cd-sep">:</div>
+    <div class="n-cd-group"><div class="n-cd-digits"><div class="n-cd-card"><span class="n-cd-num" id="cdS0">0</span></div><div class="n-cd-card"><span class="n-cd-num" id="cdS1">0</span></div></div><div class="n-cd-lbl">Seconds</div></div>
+  </div>
+  <div class="n-sr" id="nightSr" style="margin-top:14px;font-size:.75rem;color:var(--t3);letter-spacing:.1em;"></div>
 </div>
 <div class="root">
 <header class="hdr">
@@ -258,7 +278,7 @@ function updateSun(){
     $('arcP').setAttribute('points',pStr);$('arcG').setAttribute('points',pStr);
   }else{$('arcP').setAttribute('points','');$('arcG').setAttribute('points','');}
   $('nightEl').classList.toggle('on',isNight);
-  if(isNight)$('nightSr').textContent='Next sunrise: '+riseStr;
+  if(isNight)$('nightSr').textContent='Sunrise at '+riseStr;
 }
 updateSun();setInterval(updateSun,60000);
 function setRing(p){const c=527.8,o=c*(1-Math.min(1,p));$('ringFill').style.strokeDashoffset=o;$('ringGlow').style.strokeDashoffset=o;}
@@ -458,7 +478,38 @@ function updateConnStatus(ok){
 const _origFetchData=fetchData;
 fetchData=async function(){try{await _origFetchData();updateConnStatus(true);}catch(e){console.error('Fetch failed:',e);updateConnStatus(false);}};
 
-// 7. Night screen stats
+// 7. Sunrise countdown — flip-clock style
+let prevCD={h0:'',h1:'',m0:'',m1:'',s0:'',s1:''};
+function updateCountdown(){
+  const now=new Date(),nowH=now.getHours()+now.getMinutes()/60+now.getSeconds()/3600;
+  const{rise}=sunCache;
+  let diff=rise-nowH; // hours until sunrise
+  if(diff<0)diff+=24; // past sunset, sunrise is tomorrow
+  if(diff>18)diff=0; // safety: don't show 20h countdown during daytime
+  const totalSec=Math.max(0,Math.floor(diff*3600));
+  const h=Math.floor(totalSec/3600);
+  const m=Math.floor((totalSec%3600)/60);
+  const s=totalSec%60;
+  const digits={
+    h0:String(Math.floor(h/10)),h1:String(h%10),
+    m0:String(Math.floor(m/10)),m1:String(m%10),
+    s0:String(Math.floor(s/10)),s1:String(s%10)
+  };
+  for(const[key,val] of Object.entries(digits)){
+    const el=$('cd'+key.toUpperCase());
+    if(el&&prevCD[key]!==val){
+      el.textContent=val;
+      el.classList.remove('tick');
+      void el.offsetWidth; // force reflow
+      el.classList.add('tick');
+      prevCD[key]=val;
+    }
+  }
+}
+setInterval(updateCountdown,1000);
+updateCountdown();
+
+// 8. Night screen stats
 let nightStatsCache={};
 function updateNightStats(){
   const ns=$('nightStats');if(!ns)return;
