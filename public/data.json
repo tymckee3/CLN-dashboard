@@ -3,11 +3,11 @@
   "currentKW": "-6.6",
   "capacityFactor": "0",
   "todayKWh": {
-    "value": "5.08",
-    "unit": "MWh"
+    "value": "-29",
+    "unit": "kWh"
   },
   "yesterdayKWh": {
-    "value": "4.77",
+    "value": "5.07",
     "unit": "MWh"
   },
   "last30Days": {
@@ -27,21 +27,14 @@
   "co2OffsetTons30d": "457.8",
   "sunrise": "6:57 AM MDT",
   "sunset": "7:24 PM MDT",
-  "sunElevation": -47.1,
+  "sunElevation": -26.8,
   "weather": {
-    "tempF": 55,
+    "tempF": 50,
     "condition": "Clear",
-    "windSpeed": 3,
-    "windDirection": 212,
+    "windSpeed": 2,
+    "windDirection": 199,
     "icon": "sunny",
     "forecast": [
-      {
-        "date": "2026-04-02",
-        "high": 77,
-        "low": 48,
-        "condition": "Clear",
-        "icon": "sunny"
-      },
       {
         "date": "2026-04-03",
         "high": 64,
@@ -51,12 +44,19 @@
       },
       {
         "date": "2026-04-04",
-        "high": 68,
+        "high": 70,
         "low": 43,
+        "condition": "Clear",
+        "icon": "sunny"
+      },
+      {
+        "date": "2026-04-05",
+        "high": 73,
+        "low": 50,
         "condition": "Clear",
         "icon": "sunny"
       }
     ]
   },
-  "scrapedAt": "2026-04-02T05:54:34.601Z"
+  "scrapedAt": "2026-04-02T10:42:18.328Z"
 }
