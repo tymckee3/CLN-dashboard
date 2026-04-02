@@ -341,24 +341,68 @@ function applyWeather(wx){
   $('wxIrr').textContent=irr;$('wxIrrBar').style.width=Math.min(100,irr/10)+'%';
   $('irrSide').textContent=irr;$('irrSideBar').style.width=Math.min(100,irr/10)+'%';$('irrSideNote').textContent=cond;
 }
+// ── PRODUCTION STORIES (center, under kW gauge) ─────────────
 let stories=[],si=0;
 function buildStories(d){
   const kw=parseFloat(d.currentKW)||0,tK=toKwh(d.todayKWh?.value,d.todayKWh?.unit),yK=toKwh(d.yesterdayKWh?.value,d.yesterdayKWh?.unit),l3=toKwh(d.last30Days?.value,d.last30Days?.unit),co2=parseFloat(d.co2OffsetTons30d)||0,nowH=new Date().getHours();
   const s=[];
-  if(kw>0){s.push({t:`Right now, powering <span class="s-big">${homes(kw*0.5).toLocaleString()}</span> homes`,n:'from sunlight striking a field in Belen, New Mexico'});s.push({t:`<span class="s-big">${kw}</span> kilowatts — the equivalent of <span class="s-big">${Math.round(kw*10).toLocaleString()}</span> laptops running at once`,n:'zero fuel · zero exhaust · complete silence'});if(wxCache.cloud>50)s.push({t:`Cloud cover is limiting output right now`,n:`${wxCache.cloud}% cloud cover is reducing available sunlight`});else if(nowH>=10&&nowH<=14)s.push({t:`Solar output is near its daily peak`,n:'the sun is high — irradiance is strongest between 10am and 2pm'});else if(nowH<10)s.push({t:`Production is increasing as the sun rises`,n:'output will continue climbing through solar noon'});else s.push({t:`Production is decreasing as the sun sets`,n:'output will taper off toward sunset'});}
-  if(tK>0&&yK>0){const pct=Math.round((tK-yK)/yK*100);s.push({t:`Today is <span class="s-big">${Math.abs(pct)}%</span> ${pct>=0?'ahead of':'behind'} yesterday`,n:pct>=0?'strong production day':'cloud cover or weather may be a factor'});}
-  if(tK>0)s.push({t:`<span class="s-big">${d.todayKWh.value}</span> <span style="font-size:1rem;color:var(--t2)">${d.todayKWh.unit}</span> produced since sunrise today`,n:'clean electricity delivered to local New Mexico families'});
-  if(l3>0)s.push({t:`<span class="s-big">${homes(l3/30).toLocaleString()}</span> homes powered every day for 30 days`,n:'continuous clean energy from a single solar field'});
-  if(co2>0)s.push({t:`<span class="s-big">${co2.toFixed(0)}</span> tons of CO₂ offset in 30 days`,n:'same as taking '+Math.round(co2/4.6)+' cars off the road for a month'});
-  s.push({t:`Solar panels produce electricity in <strong>complete silence</strong> with no moving parts`,n:'the photoelectric effect — explained by Albert Einstein in 1905'});
-  s.push({t:`New Mexico receives over <span class="s-big">300</span> sunny days per year`,n:'one of the highest solar resource regions in the United States'});
+  if(kw>0){
+    s.push({t:`Powering <span class="s-big">${homes(kw*0.5).toLocaleString()}</span> homes right now`});
+    s.push({t:`Equivalent to <span class="s-big">${Math.round(kw*10).toLocaleString()}</span> laptops running at once`});
+    if(wxCache.cloud>50)s.push({t:`${wxCache.cloud}% cloud cover — output is reduced`});
+    else if(nowH>=10&&nowH<=14)s.push({t:`Near daily peak — sun is high overhead`});
+    else if(nowH<10)s.push({t:`Output climbing as the sun rises`});
+    else s.push({t:`Output tapering as the sun sets`});
+  }
+  if(tK>0&&yK>0){const pct=Math.round((tK-yK)/yK*100);s.push({t:`<span class="s-big">${Math.abs(pct)}%</span> ${pct>=0?'ahead of':'behind'} yesterday's production`});}
+  if(tK>0)s.push({t:`<span class="s-big">${d.todayKWh.value}</span> <span style="font-size:1rem;color:var(--t2)">${d.todayKWh.unit}</span> produced since sunrise`});
+  if(co2>0)s.push({t:`<span class="s-big">${co2.toFixed(0)}</span> tons CO₂ offset · like removing ${Math.round(co2/4.6)} cars for a month`});
   stories=s;buildDots();
 }
 function buildDots(){const c=$('sdEl');c.innerHTML='';const n=Math.min(stories.length,8);for(let i=0;i<n;i++){const el=document.createElement('div');el.className='s-dot'+(i===si%n?' on':'');c.appendChild(el);}}
 function showStory(){if(!stories.length)return;const st=stories[si%stories.length];const el=$('stEl'),ne=$('snEl');el.style.opacity='0';ne.style.opacity='0';setTimeout(()=>{el.innerHTML=st.t;ne.textContent=st.n||'';el.style.opacity='1';ne.style.opacity='1';buildDots();si++;},520);}
-let insights=[],ii=0;
-function buildInsights(d){const kw=parseFloat(d.currentKW)||0;insights=[kw>0?`Producing <strong>${kw} kW</strong> right now — powering approximately <strong>${homes(kw*0.5).toLocaleString()} homes</strong> in the Belen community`:'Solar production follows the sun — output rises at dawn, peaks at noon, and tapers at dusk','Solar panels convert light directly into electricity via the photoelectric effect — no combustion, no emissions, no moving parts','This community solar project shares clean energy with local families and businesses through the <strong>PNM grid</strong>','One hour of sunlight reaching Earth carries more energy than all of humanity uses in <strong>an entire year</strong>'];}
-function showInsight(){if(!insights.length)return;const el=$('btmEl');el.style.animation='none';void el.offsetHeight;el.style.animation='fadeUp .5s ease';el.innerHTML=insights[ii%insights.length];ii++;}
+
+// ── GENERAL SOLAR FACTS (bottom bar) ────────────────────────
+// Loaded from facts.json (AI-generated via Claude API in GitHub Actions)
+// Falls back to hardcoded pool if facts.json unavailable
+const fallbackFacts=[
+  'One hour of sunlight hitting Earth carries more energy than all of humanity uses in <strong>an entire year</strong>',
+  'Solar panels convert light directly into electricity — no combustion, no emissions, <strong>no moving parts</strong>',
+  'New Mexico receives over <strong>300 sunny days</strong> per year — one of the highest solar resource regions in the U.S.',
+  'This community solar project shares clean energy with local families through the <strong>PNM grid</strong>',
+  'A single solar panel can offset about <strong>1 ton of CO₂</strong> over its lifetime',
+  'Community solar lets renters and homeowners benefit from solar <strong>without rooftop panels</strong>',
+  'Solar energy is now the <strong>cheapest source of electricity</strong> in history according to the IEA',
+  'The photoelectric effect that powers solar panels was explained by <strong>Albert Einstein in 1905</strong>',
+  'Solar panels have <strong>no fuel costs</strong> — once installed, sunlight is free',
+  'A typical solar panel lasts <strong>25–30 years</strong> with minimal maintenance',
+  'New Mexico\'s solar potential is among the top 3 states in the nation',
+  'Solar energy creates <strong>5× more jobs</strong> per dollar invested than fossil fuels',
+  'Community solar programs have grown <strong>over 200%</strong> in the last five years nationwide',
+  'The energy payback time for a solar panel is just <strong>1–3 years</strong> of its 30-year life',
+  'Solar panels work on cloudy days too — they use <strong>diffuse light</strong>, not just direct sun',
+  'The U.S. installed enough solar in 2024 to power <strong>over 30 million homes</strong>',
+  'Solar reduces strain on the electric grid during <strong>peak demand hours</strong> when it\'s needed most',
+  'Belen, NM receives an average of <strong>6.5 peak sun hours</strong> per day — ideal for solar',
+  'Community solar subscribers typically save <strong>10–20%</strong> on their electricity bills',
+  'Solar panels are <strong>over 90% recyclable</strong> at end of life',
+  'The sun produces enough energy in one second to power Earth for <strong>500,000 years</strong>',
+  'New Mexico\'s Community Solar Act enables projects like this one to <strong>serve low-income households</strong>',
+  'Solar installations in the U.S. have driven panel costs down <strong>over 70%</strong> since 2010',
+  'A 5 MW solar array like this one can offset the equivalent of <strong>driving 20 million miles</strong> per year',
+  'Solar energy requires <strong>zero water</strong> to generate electricity, unlike coal or natural gas plants',
+];
+let facts=[...fallbackFacts],fi=0;
+async function fetchFacts(){
+  try{
+    const r=await fetch('/facts.json?t='+Date.now());
+    const d=await r.json();
+    if(Array.isArray(d)&&d.length>0)facts=d;
+  }catch(e){/* use fallback */}
+  // Shuffle so each reload feels fresh
+  for(let i=facts.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[facts[i],facts[j]]=[facts[j],facts[i]];}
+}
+function showInsight(){if(!facts.length)return;const el=$('btmEl');el.style.animation='none';void el.offsetHeight;el.style.animation='fadeUp .5s ease';el.innerHTML=facts[fi%facts.length];fi++;}
 // ── ANIMATED NUMBER COUNTER ──────────────────────────────────
 let lastKW=0, displayKW=0, interpTimer=null, lastFetchTime=0;
 function animateValue(el,from,to,duration,fmt){
@@ -440,7 +484,7 @@ async function fetchData(){
     if(d.sunElevation)wxCache.elev=d.sunElevation;
     if(d.weather)applyWeather(d.weather);
     if(hist.length>0){const rec=hist.slice(-7);const lbl=rec.map(h=>{const dt=new Date(h.date+'T12:00:00');return dt.toLocaleDateString('en-US',{weekday:'short',month:'numeric',day:'numeric'});});makeCombo(lbl,rec.map(h=>h.kwhProduced));}
-    buildStories(d);buildInsights(d);
+    buildStories(d);
   }catch(e){
     console.error(e);
     // If this is the first load (still showing "Loading..."), show error state and schedule fast retry
@@ -449,9 +493,10 @@ async function fetchData(){
     throw e;
   }
 }
-fetchWx();
+fetchWx();fetchFacts();
 showStory();setInterval(showStory,14*1000);
 showInsight();setInterval(showInsight,18*1000);
+setInterval(fetchFacts,30*60*1000); // refresh facts every 30 min
 
 // ── KIOSK HARDENING ──────────────────────────────────────────
 
