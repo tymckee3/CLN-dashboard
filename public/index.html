@@ -489,24 +489,17 @@ async function fetchData(){
     const todayKwh=toKwh(d.todayKWh?.value,d.todayKWh?.unit);
     const apiDropout=kw===0&&isDaytime&&todayKwh>0;
     if(apiDropout){
-      if(lastKW>0){
-        // Have a previous good reading — interpolation handles it
-        console.log('API dropout — keeping last good kW:',lastKW);
-      }else{
-        // No previous reading — estimate from today's cumulative energy + solar curve
-        const dayLen=sunCache.set-sunCache.rise; // hours of daylight
-        const pct=Math.max(0.01,(nowH-sunCache.rise)/dayLen);
-        // Integral of sin(πt) from 0 to pct = (1-cos(πp))/π
-        // todayKwh = peakKW × dayLen × (1-cos(πp))/π
-        const integral=(1-Math.cos(Math.PI*pct))/Math.PI;
-        const peakKW=integral>0.01?todayKwh/(dayLen*integral):todayKwh;
-        kw=Math.max(0,peakKW*Math.sin(Math.PI*pct));
-        console.log('Estimated kW from todayKWh:',kw.toFixed(1),'(peak est:',peakKW.toFixed(0)+')');
-        lastKW=kw;displayKW=kw;
-        $('kwEl').textContent=kw.toFixed(1);
-        const cp=Math.min(1,kw/4975);setRing(cp);
+      // Use last good kW from data.json (persisted by scraper) or in-memory
+      const fallback=lastKW>0?lastKW:parseFloat(d.lastGoodKW)||0;
+      if(fallback>0){
+        lastKW=fallback;
+        if(!displayKW||displayKW<=0)displayKW=fallback;
+        lastFetchTime=d.lastGoodKWTime?new Date(d.lastGoodKWTime).getTime():Date.now();
+        $('kwEl').textContent=displayKW.toFixed(1);
+        const cp=Math.min(1,displayKW/4975);setRing(cp);
         $('capEl').textContent=(cp*100).toFixed(1)+'% capacity';
-        if(kw>0)$('homesEl').textContent='≈ '+homes(kw*0.5).toLocaleString()+' homes';
+        if(displayKW>0)$('homesEl').textContent='≈ '+homes(displayKW*0.5).toLocaleString()+' homes';
+        console.log('API dropout — using last good kW:',fallback);
       }
     }else{
       // Normal update: animate from displayed value to new real value

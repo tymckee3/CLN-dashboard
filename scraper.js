@@ -243,10 +243,18 @@ const path = require('path');
       }))
     } : null;
 
+    // Carry forward last good kW reading when API returns 0 during production
+    let prevData = {};
+    try { prevData = JSON.parse(fs.readFileSync(path.join(__dirname, 'public', 'data.json'), 'utf8')); } catch(e) {}
+    const lastGoodKW = (parseFloat(kw) > 0) ? kw : (prevData.lastGoodKW || null);
+    const lastGoodKWTime = (parseFloat(kw) > 0) ? new Date().toISOString() : (prevData.lastGoodKWTime || null);
+
     // Build main output
     const output = {
       status: 'ok',
       currentKW: kw,
+      lastGoodKW: lastGoodKW,
+      lastGoodKWTime: lastGoodKWTime,
       capacityFactor: String(capacityFactor),
       todayKWh: smartUnit(todayKwh),
       yesterdayKWh: smartUnit(yesterdayKwh),
