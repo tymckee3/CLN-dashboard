@@ -316,13 +316,74 @@ function showStory(){if(!stories.length)return;const st=stories[si%stories.lengt
 let insights=[],ii=0;
 function buildInsights(d){const kw=parseFloat(d.currentKW)||0;insights=[kw>0?`Producing <strong>${kw} kW</strong> right now — powering approximately <strong>${homes(kw*0.5).toLocaleString()} homes</strong> in the Belen community`:'Solar production follows the sun — output rises at dawn, peaks at noon, and tapers at dusk','Solar panels convert light directly into electricity via the photoelectric effect — no combustion, no emissions, no moving parts','This community solar project shares clean energy with local families and businesses through the <strong>PNM grid</strong>','One hour of sunlight reaching Earth carries more energy than all of humanity uses in <strong>an entire year</strong>'];}
 function showInsight(){if(!insights.length)return;const el=$('btmEl');el.style.animation='none';void el.offsetHeight;el.style.animation='fadeUp .5s ease';el.innerHTML=insights[ii%insights.length];ii++;}
+// ── ANIMATED NUMBER COUNTER ──────────────────────────────────
+let lastKW=0, displayKW=0, interpTimer=null, lastFetchTime=0;
+function animateValue(el,from,to,duration,fmt){
+  const start=performance.now();
+  function step(now){
+    const p=Math.min(1,(now-start)/duration);
+    const ease=1-Math.pow(1-p,3); // ease-out cubic
+    const v=from+(to-from)*ease;
+    el.textContent=fmt?fmt(v):v.toFixed(1);
+    if(p<1)requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+// ── SOLAR CURVE INTERPOLATION ────────────────────────────────
+// Between fetches, gently nudge the displayed kW based on the
+// solar production curve (sine of sun position). Changes are tiny
+// (±0.5-2% of current value) to feel alive without being fake.
+function startInterpolation(){
+  if(interpTimer)clearInterval(interpTimer);
+  interpTimer=setInterval(()=>{
+    if(lastKW<=0)return; // nighttime or no data
+    const now=new Date(),nowH=now.getHours()+now.getMinutes()/60+now.getSeconds()/3600;
+    const{rise,set}=sunCache;
+    if(nowH<rise||nowH>set){displayKW=0;$('kwEl').textContent='0';return;}
+    // Where are we on the solar sine curve?
+    const pct=(nowH-rise)/(set-rise);
+    const sineNow=Math.sin(Math.PI*pct);
+    // Estimate what the curve "should" be doing — rising or falling
+    const pctAgo=(nowH-0.008-rise)/(set-rise); // ~30s ago
+    const sineAgo=Math.sin(Math.PI*pctAgo);
+    const trend=sineNow-sineAgo; // positive=rising, negative=falling
+    // Scale the nudge: max ±1.5% of lastKW per tick
+    const nudge=trend*lastKW*12; // amplify the tiny sine delta
+    const clamped=Math.max(-lastKW*0.015,Math.min(lastKW*0.015,nudge));
+    displayKW=Math.max(0,displayKW+clamped);
+    // Don't drift too far from the real value (max ±5%)
+    if(Math.abs(displayKW-lastKW)/lastKW>0.05)displayKW=lastKW+(displayKW>lastKW?lastKW*0.05:-lastKW*0.05);
+    $('kwEl').textContent=displayKW.toFixed(1);
+    // Update ring + homes to match interpolated value
+    const cp=Math.min(1,displayKW/4975);setRing(cp);
+    $('capEl').textContent=(cp*100).toFixed(1)+'% capacity';
+    if(displayKW>0)$('homesEl').textContent='≈ '+homes(displayKW*0.5).toLocaleString()+' homes';
+  },30000); // every 30 seconds
+}
+startInterpolation();
+
+// ── LIVE "AGO" TIMESTAMP ─────────────────────────────────────
+setInterval(()=>{
+  if(!lastFetchTime)return;
+  const sec=Math.round((Date.now()-lastFetchTime)/1000);
+  if(sec<60)$('updEl').textContent='Updated '+sec+'s ago';
+  else $('updEl').textContent='Updated '+Math.floor(sec/60)+'m '+sec%60+'s ago';
+},1000);
+
 async function fetchData(){
   try{
     const[dr,hr]=await Promise.all([fetch('/data.json?t='+Date.now()),fetch('/history.json?t='+Date.now())]);
     const d=await dr.json();let hist=[];try{hist=await hr.json();}catch(e){}
     if(d.status!=='ok')return;
+    lastFetchTime=Date.now();
     const kw=parseFloat(d.currentKW)||0;
-    $('kwEl').textContent=d.currentKW||'—';
+    // Animate from previous displayed value to new real value
+    const oldKW=displayKW||lastKW||0;
+    lastKW=kw;displayKW=kw;
+    if(oldKW>0&&kw>0&&Math.abs(oldKW-kw)>0.5){
+      animateValue($('kwEl'),oldKW,kw,2200,v=>v.toFixed(1));
+    }else{$('kwEl').textContent=kw>0?kw.toFixed(1):'—';}
     const cp=Math.min(1,kw/4975);setRing(cp);
     $('capEl').textContent=(cp*100).toFixed(1)+'% capacity';
     if(kw>0)$('homesEl').textContent='≈ '+homes(kw*0.5).toLocaleString()+' homes';
@@ -331,7 +392,7 @@ async function fetchData(){
     sp('ydN','ydU','ydS',d.yesterdayKWh,k=>'≈ '+homes(k).toLocaleString()+' homes');
     sp('l3N','l3U','l3S',d.last30Days,k=>'≈ '+homes(k/30).toLocaleString()+' homes/day');
     if(d.co2OffsetTons30d){$('co2N').textContent=d.co2OffsetTons30d;$('co2S').textContent='= '+Math.round(parseFloat(d.co2OffsetTons30d)*48).toLocaleString()+' trees';}
-    if(d.scrapedAt){const t=new Date(d.scrapedAt);$('updEl').textContent='Updated '+t.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZoneName:'short'});}
+    if(d.scrapedAt){lastFetchTime=Date.now();}
     if(d.sunrise&&d.sunset){const rH=parseTimeStr(d.sunrise),sH=parseTimeStr(d.sunset);if(rH&&sH){sunCache={rise:rH,set:sH,riseStr:d.sunrise.replace(/\s*(MDT|MST)\s*/g,'').trim(),setStr:d.sunset.replace(/\s*(MDT|MST)\s*/g,'').trim()};updateSun();}}
     if(d.sunElevation)wxCache.elev=d.sunElevation;
     if(d.weather)applyWeather(d.weather);
@@ -340,7 +401,7 @@ async function fetchData(){
   }catch(e){console.error(e);}
 }
 fetchData();fetchWx();
-setInterval(fetchData,5*60*1000);setInterval(fetchWx,60*60*1000);
+setInterval(fetchData,60*1000);setInterval(fetchWx,60*60*1000);
 showStory();setInterval(showStory,14*1000);
 showInsight();setInterval(showInsight,18*1000);
 </script>
