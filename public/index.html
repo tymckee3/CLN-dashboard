@@ -337,9 +337,9 @@ function makeIrrForecast(labels,vals){
 let wxCache={irr:0,cloud:0,elev:40};
 async function fetchWx(){
   try{
-    const r=await fetch('https://api.open-meteo.com/v1/forecast?latitude=34.6612&longitude=-106.7747&current=direct_radiation&daily=shortwave_radiation_sum&timezone=America%2FDenver&forecast_days=7');
+    const r=await fetch('https://api.open-meteo.com/v1/forecast?latitude=34.6612&longitude=-106.7747&current=shortwave_radiation&daily=shortwave_radiation_sum&timezone=America%2FDenver&forecast_days=7');
     const d=await r.json();
-    wxCache.irr=Math.round(d.current?.direct_radiation||0);
+    wxCache.irr=Math.round(d.current?.shortwave_radiation||0);
     if(d.daily){
       const lbl=d.daily.time.map(t=>{const dt=new Date(t+'T12:00:00');return dt.toLocaleDateString('en-US',{weekday:'short',month:'numeric',day:'numeric'});});
       const vals=d.daily.shortwave_radiation_sum.map(v=>Math.round((v||0)*1000000/3600/12));
