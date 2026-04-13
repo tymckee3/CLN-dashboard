@@ -264,7 +264,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;back
 </div>
 <script>
 function toKwh(v,u){if(!v||v==='—')return 0;const n=parseFloat(String(v).replace(',',''));return u==='GWh'?n*1e6:u==='MWh'?n*1e3:n;}
-function homes(k){return Math.max(1,Math.round(k/30));}
+function homes(k){return k<=0?0:Math.max(1,Math.round(k/30));}
 function $(i){return document.getElementById(i);}
 function tick(){const n=new Date();$('clkEl').textContent=n.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});$('dayEl').textContent=n.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});}
 tick();setInterval(tick,1000);
