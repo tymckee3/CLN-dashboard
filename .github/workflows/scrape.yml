@@ -2,7 +2,7 @@ name: Scrape CLN Dashboard
 
 on:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '*/15 * * * *'
   workflow_dispatch:
 
 permissions:
@@ -20,13 +20,10 @@ jobs:
         with:
           node-version: '20'
 
-      - run: npm install
-      - run: npx playwright install chromium --with-deps
-
       - name: Run scraper
         env:
-          POWERTRACK_USER: ${{ secrets.POWERTRACK_USER }}
-          POWERTRACK_PASS: ${{ secrets.POWERTRACK_PASS }}
+          ALSO_ENERGY_USERNAME: ${{ secrets.ALSO_ENERGY_USERNAME }}
+          ALSO_ENERGY_PASSWORD: ${{ secrets.ALSO_ENERGY_PASSWORD }}
         run: node scraper.js
 
       - name: Commit and push data

@@ -1,64 +1,33 @@
 {
   "status": "ok",
-  "currentKW": "0.0",
-  "lastGoodKW": "529.8",
-  "lastGoodKWTime": "2026-04-02T14:41:59.695Z",
+  "currentKW": "0",
   "capacityFactor": "0",
   "todayKWh": {
-    "value": "1.05",
-    "unit": "MWh"
+    "value": "0",
+    "unit": "kWh"
   },
   "yesterdayKWh": {
-    "value": "5.07",
-    "unit": "MWh"
+    "value": "0",
+    "unit": "kWh"
   },
   "last30Days": {
-    "value": "1.15",
-    "unit": "GWh"
-  },
-  "thisYear": {
-    "value": "2.88",
-    "unit": "GWh"
-  },
-  "lifetime": {
-    "value": "5.03",
-    "unit": "GWh"
+    "value": "697.67",
+    "unit": "MWh"
   },
   "pvSizeAC": "4,975",
   "pvSizeDC": "6,499",
-  "co2OffsetTons30d": "443.5",
-  "sunrise": "6:57 AM MDT",
-  "sunset": "7:24 PM MDT",
-  "sunElevation": 49.1,
+  "co2OffsetTons30d": "269.3",
+  "sunrise": "6:37 AM MDT",
+  "sunset": "7:37 PM MDT",
+  "sunElevation": 63.5,
   "weather": {
-    "tempF": 77,
-    "condition": "Clear",
-    "windSpeed": 2,
-    "windDirection": 161,
-    "icon": "sunny",
-    "forecast": [
-      {
-        "date": "2026-04-03",
-        "high": 68,
-        "low": 50,
-        "condition": "Clear",
-        "icon": "sunny"
-      },
-      {
-        "date": "2026-04-04",
-        "high": 68,
-        "low": 43,
-        "condition": "Clear",
-        "icon": "sunny"
-      },
-      {
-        "date": "2026-04-05",
-        "high": 68,
-        "low": 52,
-        "condition": "Clear",
-        "icon": "sunny"
-      }
-    ]
+    "tempF": 68,
+    "condition": "Light rain",
+    "windSpeed": 0,
+    "icon": "lightrain"
   },
-  "scrapedAt": "2026-04-02T21:11:00.739Z"
+  "scrapedAt": "2026-04-13T19:29:23.318Z",
+  "lastGoodKW": "529.8",
+  "lastGoodKWTime": "2026-04-02T14:41:59.695Z",
+  "source": "alsoenergy-api"
 }

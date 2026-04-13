@@ -1,288 +1,323 @@
-const { chromium } = require('playwright');
+/**
+ * scraper.js — AlsoEnergy API scraper for CLN Community Solar dashboard
+ *
+ * Authenticates with the AlsoEnergy PowerTrack API and pulls:
+ *   - Current power (kW) from the production meter (15-min bins)
+ *   - Today's / yesterday's energy production (kWh)
+ *   - Last 30 days of daily production history
+ *   - Weather data
+ *   - CO₂ / environmental equivalence data
+ *   - Sunrise/sunset from Open-Meteo (free, no key)
+ *
+ * Writes public/data.json + public/history.json for the dashboard.
+ *
+ * Environment variables:
+ *   ALSO_ENERGY_USERNAME  — AlsoEnergy account email
+ *   ALSO_ENERGY_PASSWORD  — AlsoEnergy account password
+ */
+
 const fs = require('fs');
-const path = require('path');
+const https = require('https');
 
-(async () => {
-  console.log('Starting scrape...');
-  const browser = await chromium.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
+// ── Config ───────────────────────────────────────────────────
+const SITE_ID = 72296;             // ASG 8 — Cuidando Los Niños
+const METER_ID = 570224;           // METER - PRODUCTION
+const PV_SIZE_AC = 4975;           // kW AC system size
+const PV_SIZE_DC = 6499;           // kW DC system size
+const LAT = 34.6612;
+const LON = -106.7747;
+
+const USERNAME = process.env.ALSO_ENERGY_USERNAME;
+const PASSWORD = process.env.ALSO_ENERGY_PASSWORD;
+
+if (!USERNAME || !PASSWORD) {
+  console.error('Missing ALSO_ENERGY_USERNAME or ALSO_ENERGY_PASSWORD');
+  process.exit(1);
+}
+
+// ── HTTP helpers ─────────────────────────────────────────────
+function request(method, url, headers = {}, body = null) {
+  return new Promise((resolve, reject) => {
+    const u = new URL(url);
+    const opts = {
+      hostname: u.hostname, path: u.pathname + u.search,
+      method, headers: { ...headers }
+    };
+    if (body) {
+      const buf = typeof body === 'string' ? body : JSON.stringify(body);
+      opts.headers['Content-Length'] = Buffer.byteLength(buf);
+    }
+    const req = https.request(opts, res => {
+      let data = '';
+      res.on('data', c => data += c);
+      res.on('end', () => {
+        if (res.statusCode >= 400) {
+          reject(new Error(`${method} ${u.pathname} → ${res.statusCode}: ${data.slice(0, 200)}`));
+          return;
+        }
+        try { resolve(JSON.parse(data)); }
+        catch { resolve(data); }
+      });
+    });
+    req.on('error', reject);
+    if (body) req.write(typeof body === 'string' ? body : JSON.stringify(body));
+    req.end();
   });
+}
 
+// ── AlsoEnergy auth ──────────────────────────────────────────
+async function getToken() {
+  const body = `grant_type=password&username=${encodeURIComponent(USERNAME)}&password=${encodeURIComponent(PASSWORD)}`;
+  const res = await request('POST', 'https://api.alsoenergy.com/Auth/token', {
+    'Content-Type': 'application/x-www-form-urlencoded'
+  }, body);
+  if (!res.access_token) throw new Error('Auth failed: ' + JSON.stringify(res));
+  return res.access_token;
+}
+
+// ── API wrappers ─────────────────────────────────────────────
+function api(token, method, path, body) {
+  const hdrs = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+  return request(method, `https://api.alsoenergy.com${path}`, hdrs, body);
+}
+
+/** Query BinData — the main time-series endpoint */
+function binData(token, from, to, binSize, fields) {
+  const qs = `fromLocalTime=${from}&toLocalTime=${to}&binSizes=${binSize}`;
+  return api(token, 'POST', `/Data/BinData?${qs}`, fields);
+}
+
+// ── Date helpers (Mountain Time) ─────────────────────────────
+function mtnNow() {
+  return new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Denver' }));
+}
+function fmtLocal(d) {
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+function fmtDate(d) { return fmtLocal(d).split('T')[0]; }
+function addDays(d, n) { const r = new Date(d); r.setDate(r.getDate() + n); return r; }
+
+// ── Sunrise / Sunset from Open-Meteo ─────────────────────────
+async function getSunTimes() {
   try {
-    const context = await browser.newContext({
-      userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-    });
-
-    let page = await context.newPage();
-
-    // ── LOGIN (with retry) ───────────────────────────────────
-    const MAX_LOGIN_ATTEMPTS = 3;
-    let loggedIn = false;
-
-    for (let attempt = 1; attempt <= MAX_LOGIN_ATTEMPTS; attempt++) {
-      try {
-        console.log(`Login attempt ${attempt}/${MAX_LOGIN_ATTEMPTS}...`);
-        await page.goto('https://apps.alsoenergy.com/Account/login', {
-          waitUntil: 'domcontentloaded', timeout: 60000
-        });
-        await page.waitForSelector('input[name="username"], input[type="email"]', { timeout: 30000 });
-        await page.fill('input[name="username"], input[type="email"]', process.env.POWERTRACK_USER || '');
-        await page.click('button:has-text("Continue")');
-
-        // Wait for password page — Auth0 may redirect or show inline
-        try {
-          await page.waitForURL('**/login/password**', { timeout: 20000 });
-        } catch (e) {
-          // Password field might appear on the same page (Auth0 flow variation)
-          console.log('URL redirect to /login/password did not happen, checking for inline password field...');
-        }
-
-        await page.waitForTimeout(1500);
-        const pwd = page.locator('input[type="password"]').first();
-        await pwd.waitFor({ state: 'visible', timeout: 20000 });
-        await pwd.fill(process.env.POWERTRACK_PASS || '');
-        await page.click('button:has-text("Continue")');
-
-        console.log('Waiting for login redirect...');
-        for (let i = 0; i < 30; i++) {
-          await page.waitForTimeout(2000);
-          const url = page.url();
-          console.log(`[${(i+1)*2}s] ${url.substring(0, 60)}`);
-          if (url.includes('alsoenergy.com/powertrack')) { loggedIn = true; break; }
-        }
-        if (loggedIn) break;
-        throw new Error('Login redirect timed out');
-
-      } catch (loginErr) {
-        console.error(`Login attempt ${attempt} failed:`, loginErr.message);
-        if (attempt < MAX_LOGIN_ATTEMPTS) {
-          console.log(`Retrying in ${attempt * 5} seconds...`);
-          await page.waitForTimeout(attempt * 5000);
-          // Fresh page for retry
-          await page.close();
-          page = await context.newPage();
-        } else {
-          throw new Error(`Login failed after ${MAX_LOGIN_ATTEMPTS} attempts: ${loginErr.message}`);
-        }
-      }
-    }
-    console.log('Logged in!');
-
-    // ── HELPER: authenticated fetch ────────────────────────────
-    async function apiFetch(endpoint) {
-      const result = await page.evaluate(async (url) => {
-        const res = await fetch(url, { credentials: 'include' });
-        if (!res.ok) return null;
-        return res.json();
-      }, `https://apps.alsoenergy.com${endpoint}`);
-      return result;
-    }
-
-    // ── 1. PRODUCTION (live + today/yesterday/30d + sunrise/sunset) ──
-    console.log('Fetching production data...');
-    const prod = await apiFetch('/api/production/S72296?lastChanged=1900-01-01T00:00:00.000Z');
-    console.log('Production:', JSON.stringify(prod).substring(0, 200));
-
-    // ── 2. WEATHER from AlsoEnergy ─────────────────────────────
-    console.log('Fetching weather...');
-    const weather = await apiFetch('/api/view/siteweather/S72296?lastChanged=1900-01-01T00:00:00.000Z');
-    console.log('Weather:', JSON.stringify(weather).substring(0, 200));
-
-    // ── 3. DAILY HISTORY via chart API (30 days, daily bins) ──
-    console.log('Fetching 30-day history...');
-    const now = new Date();
-    const endDate = now.toISOString().split('T')[0];
-    const startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-
-    const historyData = await page.evaluate(async ({ startDate, endDate }) => {
-      const body = {
-        binSize: 1440,
-        builtInParameters: null,
-        chartType: 255,
-        context: 'site',
-        end: endDate,
-        futureDays: 0,
-        hardwareSet: null,
-        hardwareByType: null,
-        query: null,
-        sectionCode: -1,
-        source: ['S72296'],
-        start: startDate
-      };
-      const res = await fetch('https://apps.alsoenergy.com/api/view/chart?lastChanged=1900-01-01T00:00:00.000Z', {
-        method: 'GET',
-        credentials: 'include'
-      });
-      // The chart API uses GET with the key as a query param — reconstruct from production page
-      // Actually navigate to get the chart data via page context
-      const res2 = await fetch(`https://apps.alsoenergy.com/api/view/chart?lastChanged=1900-01-01T00:00:00.000Z`, {
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      return null;
-    }, { startDate, endDate });
-
-    // Chart API requires a specific key format — use the dashboard page to trigger it
-    // Instead, navigate to the site dashboard and intercept the chart response
-    const chartResponses = [];
-    const chartHandler = async (response) => {
-      const url = response.url();
-      if (url.includes('/api/view/chart')) {
-        try {
-          const body = await response.json();
-          const key = typeof body.key === 'string' ? JSON.parse(body.key) : {};
-          // We want the daily bin chart (binSize 1440) for history
-          if (key.binSize === 1440 || key.chartType === 255) {
-            chartResponses.push({ key, body });
-            console.log(`Chart captured: binSize=${key.binSize} start=${key.start} end=${key.end} series=${body.series?.length}`);
-          }
-        } catch(e) {}
-      }
+    const d = await request('GET',
+      `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&daily=sunrise,sunset&timezone=America%2FDenver&forecast_days=1`);
+    const rise = d.daily?.sunrise?.[0]; // "2026-04-13T06:57"
+    const set = d.daily?.sunset?.[0];
+    const fmtTime = iso => {
+      const dt = new Date(iso);
+      let h = dt.getHours(), m = dt.getMinutes();
+      const ap = h >= 12 ? 'PM' : 'AM';
+      if (h > 12) h -= 12; if (h === 0) h = 12;
+      return `${h}:${String(m).padStart(2, '0')} ${ap} MDT`;
     };
-    page.on('response', chartHandler);
-
-    await page.goto('https://apps.alsoenergy.com/powertrack/S72296/overview/dashboard', {
-      waitUntil: 'domcontentloaded', timeout: 60000
-    });
-    await page.waitForTimeout(10000);
-    page.off('response', chartHandler);
-
-    console.log('Chart responses captured:', chartResponses.length);
-
-    // ── BUILD OUTPUT ───────────────────────────────────────────
-    function toKwh(val) {
-      if (!val || val === '—') return 0;
-      return parseFloat(String(val).replace(',', ''));
-    }
-
-    // Production data — treat 0 as valid (nighttime), only '—' for null/undefined
-    const rawPower = prod?.power;
-    const kw = (rawPower !== null && rawPower !== undefined) ? parseFloat(rawPower).toFixed(1) : '—';
-    const capacityFactor = (prod?.systemSize && rawPower != null) ? Math.round(parseFloat(rawPower) / prod.systemSize * 100) : '—';
-    const todayKwh = prod?.today || 0;
-    const yesterdayKwh = prod?.yesterday || 0;
-    const thirtyDayKwh = prod?.energyThirtyDays || 0;
-
-    // Format energy with smart units
-    function smartUnit(kwh) {
-      if (kwh >= 1000000) return { value: (kwh / 1000000).toFixed(2), unit: 'GWh' };
-      if (kwh >= 1000) return { value: (kwh / 1000).toFixed(2), unit: 'MWh' };
-      return { value: Math.round(kwh).toString(), unit: 'kWh' };
-    }
-
-    const co2 = thirtyDayKwh > 0 ? (thirtyDayKwh * 0.386 / 1000).toFixed(1) : null;
-
-    // Build 30-day daily history from chart data
-    const histPath = path.join(__dirname, 'public', 'history.json');
-    let history = [];
-    try { history = JSON.parse(fs.readFileSync(histPath, 'utf8')); } catch(e) { history = []; }
-
-    // Try to extract daily totals from chart responses
-    let gotRealHistory = false;
-    for (const { key, body } of chartResponses) {
-      if (key.binSize === 1440 && body.series) {
-        // Find the production series
-        const prodSeries = body.series.find(s =>
-          s.name && (s.name.toLowerCase().includes('measured') || s.name.toLowerCase().includes('production') || s.name.toLowerCase().includes('energy'))
-        );
-        if (prodSeries && prodSeries.data && prodSeries.data.length > 0) {
-          console.log('Found daily production series:', prodSeries.name, 'points:', prodSeries.data.length);
-          // Each data point: [timestamp, value]
-          for (const pt of prodSeries.data) {
-            if (!pt || pt[1] === null || pt[1] === undefined) continue;
-            const date = new Date(pt[0]).toISOString().split('T')[0];
-            const kwh = parseFloat(pt[1]);
-            if (isNaN(kwh) || kwh <= 0) continue;
-            const existing = history.findIndex(h => h.date === date);
-            const entry = { date, kwhProduced: parseFloat(kwh.toFixed(1)), unit: 'kWh', source: 'alsoenergy' };
-            if (existing >= 0) history[existing] = entry;
-            else history.push(entry);
-          }
-          gotRealHistory = true;
-          break;
-        }
-      }
-    }
-
-    if (!gotRealHistory) {
-      console.log('No daily chart data in responses — using today/yesterday from production API');
-      // At minimum update today from the production API
-      const todayStr = new Date().toISOString().split('T')[0];
-      const yesterdayStr = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-      const updateOrAdd = (date, kwh) => {
-        if (kwh <= 0) return;
-        const existing = history.findIndex(h => h.date === date);
-        const entry = { date, kwhProduced: parseFloat(kwh.toFixed ? kwh.toFixed(1) : kwh), unit: 'kWh', source: 'alsoenergy' };
-        if (existing >= 0) history[existing] = entry;
-        else history.push(entry);
-      };
-      updateOrAdd(todayStr, todayKwh);
-      updateOrAdd(yesterdayStr, yesterdayKwh);
-    }
-
-    // Sort and keep last 30 days
-    history.sort((a, b) => a.date.localeCompare(b.date));
-    history = history.slice(-30);
-    fs.writeFileSync(histPath, JSON.stringify(history, null, 2));
-    console.log(`History: ${history.length} entries, latest: ${history[history.length-1]?.date} = ${history[history.length-1]?.kwhProduced} kWh`);
-
-    // Build weather object from AlsoEnergy weather
-    const wxOut = weather ? {
-      tempF: weather.temperature,
-      condition: weather.condition,
-      windSpeed: weather.windSpeed,
-      windDirection: weather.windDirection,
-      icon: weather.icon,
-      forecast: (weather.forecast || []).slice(0, 5).map(f => ({
-        date: f.date?.split('T')[0],
-        high: f.high,
-        low: f.low,
-        condition: f.condition,
-        icon: f.icon
-      }))
-    } : null;
-
-    // Carry forward last good kW reading when API returns 0 during production
-    let prevData = {};
-    try { prevData = JSON.parse(fs.readFileSync(path.join(__dirname, 'public', 'data.json'), 'utf8')); } catch(e) {}
-    const lastGoodKW = (parseFloat(kw) > 0) ? kw : (prevData.lastGoodKW || null);
-    const lastGoodKWTime = (parseFloat(kw) > 0) ? new Date().toISOString() : (prevData.lastGoodKWTime || null);
-
-    // Build main output
-    const output = {
-      status: 'ok',
-      currentKW: kw,
-      lastGoodKW: lastGoodKW,
-      lastGoodKWTime: lastGoodKWTime,
-      capacityFactor: String(capacityFactor),
-      todayKWh: smartUnit(todayKwh),
-      yesterdayKWh: smartUnit(yesterdayKwh),
-      last30Days: smartUnit(thirtyDayKwh),
-      thisYear: smartUnit(prod?.thisYear || 0),
-      lifetime: smartUnit(prod?.lifetime || 0),
-      pvSizeAC: '4,975',
-      pvSizeDC: '6,499',
-      co2OffsetTons30d: co2,
-      sunrise: prod?.sunrise || null,
-      sunset: prod?.sunset || null,
-      sunElevation: prod?.sunElevation ? parseFloat(prod.sunElevation.toFixed(1)) : null,
-      weather: wxOut,
-      scrapedAt: new Date().toISOString()
-    };
-
-    fs.writeFileSync(path.join(__dirname, 'public', 'data.json'), JSON.stringify(output, null, 2));
-    console.log('data.json written');
-    console.log('Output summary:', {
-      kw: output.currentKW,
-      today: output.todayKWh,
-      yesterday: output.yesterdayKWh,
-      sunrise: output.sunrise,
-      sunset: output.sunset,
-      weather: output.weather?.condition
-    });
-
-  } finally {
-    await browser.close();
+    return { sunrise: fmtTime(rise), sunset: fmtTime(set) };
+  } catch (e) {
+    console.error('Sun times failed:', e.message);
+    return { sunrise: '6:57 AM MDT', sunset: '7:24 PM MDT' };
   }
-})();
+}
+
+// ── Sun elevation calc ───────────────────────────────────────
+function sunElevation(lat, lon) {
+  const now = new Date();
+  const dayOfYear = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000);
+  const declination = 23.45 * Math.sin((2 * Math.PI / 365) * (dayOfYear - 81));
+  const hourAngle = (now.getUTCHours() + now.getUTCMinutes() / 60 + lon / 15 - 12) * 15;
+  const latRad = lat * Math.PI / 180;
+  const decRad = declination * Math.PI / 180;
+  const haRad = hourAngle * Math.PI / 180;
+  const sinElev = Math.sin(latRad) * Math.sin(decRad) + Math.cos(latRad) * Math.cos(decRad) * Math.cos(haRad);
+  return Math.round(Math.asin(sinElev) * 180 / Math.PI * 10) / 10;
+}
+
+// ── Format kWh to readable value + unit ──────────────────────
+function fmtEnergy(kwh) {
+  if (kwh >= 1e6) return { value: (kwh / 1e6).toFixed(2), unit: 'GWh' };
+  if (kwh >= 1e3) return { value: (kwh / 1e3).toFixed(2), unit: 'MWh' };
+  return { value: Math.round(kwh).toString(), unit: 'kWh' };
+}
+
+// ── Main ─────────────────────────────────────────────────────
+async function main() {
+  console.log('Authenticating with AlsoEnergy API...');
+  const token = await getToken();
+  console.log('Authenticated. Fetching data for site', SITE_ID);
+
+  const now = mtnNow();
+  const todayStart = fmtDate(now) + 'T00:00:00';
+  const nowLocal = fmtLocal(now);
+  const yesterday = addDays(now, -1);
+  const yesterdayStart = fmtDate(yesterday) + 'T00:00:00';
+  const yesterdayEnd = fmtDate(now) + 'T00:00:00';
+  const thirtyDaysAgo = addDays(now, -30);
+
+  // ── Parallel API calls ───────────────────────────────────
+  const [
+    currentPower,     // Most recent 15-min kW from meter
+    todayEnergy,      // Today's kWh (site summary)
+    yesterdayEnergy,   // Yesterday's kWh
+    historyEnergy,     // Daily kWh for last 30 days
+    weather,          // Current weather
+    sunTimes          // Sunrise/sunset
+  ] = await Promise.all([
+    // Current power: last 30 minutes of 15-min bins from meter
+    binData(token, fmtLocal(addDays(now, 0)).replace(/T.*/, 'T' + String(now.getHours()).padStart(2, '0') + ':00:00'),
+      nowLocal, 'Bin15Min',
+      [{ hardwareId: METER_ID, fieldName: 'KW', function: 'Avg' }])
+      .catch(e => { console.error('currentPower:', e.message); return null; }),
+
+    // Today's production (site summary)
+    binData(token, todayStart, nowLocal, 'BinDay',
+      [{ siteId: SITE_ID, fieldName: 'ProdKWH', function: 'Diff' }])
+      .catch(e => { console.error('todayEnergy:', e.message); return null; }),
+
+    // Yesterday's production
+    binData(token, yesterdayStart, yesterdayEnd, 'BinDay',
+      [{ siteId: SITE_ID, fieldName: 'ProdKWH', function: 'Diff' }])
+      .catch(e => { console.error('yesterdayEnergy:', e.message); return null; }),
+
+    // Last 30 days daily history
+    binData(token, fmtDate(thirtyDaysAgo) + 'T00:00:00', yesterdayEnd, 'BinDay',
+      [{ siteId: SITE_ID, fieldName: 'ProdKWH', function: 'Diff' }])
+      .catch(e => { console.error('historyEnergy:', e.message); return null; }),
+
+    // Weather
+    api(token, 'GET', `/Sites/${SITE_ID}/Weather`)
+      .catch(e => { console.error('weather:', e.message); return null; }),
+
+    // Sunrise/sunset
+    getSunTimes()
+  ]);
+
+  // ── Parse results ────────────────────────────────────────
+
+  // Current kW: take the last non-zero bin
+  let currentKW = '—';
+  let lastGoodKW = null;
+  let lastGoodKWTime = null;
+  if (currentPower?.items?.length) {
+    for (let i = currentPower.items.length - 1; i >= 0; i--) {
+      const val = currentPower.items[i].data?.[0];
+      if (val != null && val > 0) {
+        currentKW = Math.round(val * 10) / 10;
+        lastGoodKW = currentKW;
+        lastGoodKWTime = new Date().toISOString();
+        break;
+      }
+    }
+    // If all zero, use the most recent bin value (could genuinely be 0)
+    if (currentKW === '—') {
+      const lastBin = currentPower.items[currentPower.items.length - 1];
+      if (lastBin?.data?.[0] != null) {
+        currentKW = Math.round(lastBin.data[0] * 10) / 10;
+      }
+    }
+  }
+
+  // Today's kWh
+  let todayKWh = 0;
+  if (todayEnergy?.items?.[0]?.data?.[0] != null) {
+    todayKWh = Math.max(0, Math.round(todayEnergy.items[0].data[0]));
+  }
+
+  // Yesterday's kWh
+  let yesterdayKWh = 0;
+  if (yesterdayEnergy?.items?.[0]?.data?.[0] != null) {
+    yesterdayKWh = Math.max(0, Math.round(yesterdayEnergy.items[0].data[0]));
+  }
+
+  // Last 30 days total
+  let last30DaysKWh = 0;
+  if (historyEnergy?.items?.length) {
+    last30DaysKWh = historyEnergy.items.reduce((sum, item) => {
+      const v = item.data?.[0] || 0;
+      return sum + Math.max(0, v);
+    }, 0);
+  }
+
+  // CO₂ offset (30-day) — calculated from actual production
+  // EPA eGRID avg: ~0.000386 metric tons CO₂ per kWh for US grid
+  let co2Tons30d = Math.round(last30DaysKWh * 0.000386 * 10) / 10;
+
+  // Weather
+  let weatherData = null;
+  if (weather) {
+    weatherData = {
+      tempF: Math.round(weather.currentTemperatureFarenheight || 0),
+      condition: weather.currentConditionDetailed || weather.currentCondition || '',
+      windSpeed: 0, // Basic weather endpoint doesn't include wind
+      icon: (weather.currentCondition || '').toLowerCase()
+    };
+  }
+
+  // Capacity factor
+  const capFactor = typeof currentKW === 'number' ? Math.round(currentKW / PV_SIZE_AC * 1000) / 10 : 0;
+
+  // ── Build data.json ──────────────────────────────────────
+  // Try to preserve lastGoodKW from previous data.json if current is zero
+  let prevData = {};
+  try { prevData = JSON.parse(fs.readFileSync('./public/data.json', 'utf8')); } catch {}
+
+  if (!lastGoodKW && prevData.lastGoodKW) {
+    lastGoodKW = prevData.lastGoodKW;
+    lastGoodKWTime = prevData.lastGoodKWTime;
+  }
+
+  const data = {
+    status: 'ok',
+    currentKW: String(currentKW),
+    capacityFactor: String(capFactor),
+    todayKWh: fmtEnergy(todayKWh),
+    yesterdayKWh: fmtEnergy(yesterdayKWh),
+    last30Days: fmtEnergy(last30DaysKWh),
+    pvSizeAC: PV_SIZE_AC.toLocaleString(),
+    pvSizeDC: PV_SIZE_DC.toLocaleString(),
+    co2OffsetTons30d: String(co2Tons30d),
+    sunrise: sunTimes.sunrise,
+    sunset: sunTimes.sunset,
+    sunElevation: sunElevation(LAT, LON),
+    weather: weatherData,
+    scrapedAt: new Date().toISOString(),
+    lastGoodKW: lastGoodKW ? String(lastGoodKW) : prevData.lastGoodKW || null,
+    lastGoodKWTime: lastGoodKWTime || prevData.lastGoodKWTime || null,
+    source: 'alsoenergy-api'
+  };
+
+  fs.writeFileSync('./public/data.json', JSON.stringify(data, null, 2));
+  console.log('Wrote data.json:', JSON.stringify({
+    currentKW, todayKWh: data.todayKWh, yesterdayKWh: data.yesterdayKWh,
+    last30Days: data.last30Days, co2: co2Tons30d
+  }));
+
+  // ── Build history.json ───────────────────────────────────
+  const history = [];
+  if (historyEnergy?.items?.length) {
+    for (const item of historyEnergy.items) {
+      const kwh = Math.max(0, Math.round(item.data?.[0] || 0));
+      if (kwh > 0) {
+        history.push({
+          date: item.timestamp.split('T')[0],
+          kwhProduced: kwh,
+          unit: 'kWh',
+          source: 'alsoenergy-api'
+        });
+      }
+    }
+  }
+
+  if (history.length > 0) {
+    fs.writeFileSync('./public/history.json', JSON.stringify(history, null, 2));
+    console.log(`Wrote history.json: ${history.length} days`);
+  } else {
+    console.log('No history data — keeping existing history.json');
+  }
+
+  console.log('Done.');
+}
+
+main().catch(e => {
+  console.error('Fatal:', e);
+  process.exit(1);
+});

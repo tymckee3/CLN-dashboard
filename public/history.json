@@ -1,50 +1,116 @@
 [
   {
-    "date": "2026-03-26",
-    "kwhProduced": 5820,
+    "date": "2026-03-14",
+    "kwhProduced": 37180,
     "unit": "kWh",
-    "source": "estimate"
+    "source": "alsoenergy-api"
+  },
+  {
+    "date": "2026-03-15",
+    "kwhProduced": 35640,
+    "unit": "kWh",
+    "source": "alsoenergy-api"
+  },
+  {
+    "date": "2026-03-16",
+    "kwhProduced": 40650,
+    "unit": "kWh",
+    "source": "alsoenergy-api"
+  },
+  {
+    "date": "2026-03-17",
+    "kwhProduced": 45170,
+    "unit": "kWh",
+    "source": "alsoenergy-api"
+  },
+  {
+    "date": "2026-03-18",
+    "kwhProduced": 45340,
+    "unit": "kWh",
+    "source": "alsoenergy-api"
+  },
+  {
+    "date": "2026-03-19",
+    "kwhProduced": 46090,
+    "unit": "kWh",
+    "source": "alsoenergy-api"
+  },
+  {
+    "date": "2026-03-20",
+    "kwhProduced": 45550,
+    "unit": "kWh",
+    "source": "alsoenergy-api"
+  },
+  {
+    "date": "2026-03-21",
+    "kwhProduced": 46090,
+    "unit": "kWh",
+    "source": "alsoenergy-api"
+  },
+  {
+    "date": "2026-03-22",
+    "kwhProduced": 39060,
+    "unit": "kWh",
+    "source": "alsoenergy-api"
+  },
+  {
+    "date": "2026-03-23",
+    "kwhProduced": 43860,
+    "unit": "kWh",
+    "source": "alsoenergy-api"
+  },
+  {
+    "date": "2026-03-24",
+    "kwhProduced": 43890,
+    "unit": "kWh",
+    "source": "alsoenergy-api"
+  },
+  {
+    "date": "2026-03-25",
+    "kwhProduced": 45840,
+    "unit": "kWh",
+    "source": "alsoenergy-api"
+  },
+  {
+    "date": "2026-03-26",
+    "kwhProduced": 48010,
+    "unit": "kWh",
+    "source": "alsoenergy-api"
   },
   {
     "date": "2026-03-27",
-    "kwhProduced": 6140,
+    "kwhProduced": 46330,
     "unit": "kWh",
-    "source": "estimate"
+    "source": "alsoenergy-api"
   },
   {
     "date": "2026-03-28",
-    "kwhProduced": 4210,
+    "kwhProduced": 43750,
     "unit": "kWh",
-    "source": "estimate"
+    "source": "alsoenergy-api"
   },
   {
     "date": "2026-03-29",
-    "kwhProduced": 5950,
+    "kwhProduced": 29810,
     "unit": "kWh",
-    "source": "estimate"
+    "source": "alsoenergy-api"
   },
   {
     "date": "2026-03-30",
-    "kwhProduced": 6380,
+    "kwhProduced": 5570,
     "unit": "kWh",
-    "source": "estimate"
+    "source": "alsoenergy-api"
   },
   {
     "date": "2026-03-31",
-    "kwhProduced": 4768,
+    "kwhProduced": 4770,
     "unit": "kWh",
-    "source": "alsoenergy"
+    "source": "alsoenergy-api"
   },
   {
     "date": "2026-04-01",
-    "kwhProduced": 5073,
+    "kwhProduced": 5070,
     "unit": "kWh",
-    "source": "alsoenergy"
-  },
-  {
-    "date": "2026-04-02",
-    "kwhProduced": 1048,
-    "unit": "kWh",
-    "source": "alsoenergy"
+    "source": "alsoenergy-api"
   }
 ]
