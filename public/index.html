@@ -219,7 +219,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;back
     </div>
     <div class="arc-zone">
       <div class="arc-svg-wrap">
-        <svg viewBox="0 0 900 80" fill="none">
+        <svg viewBox="0 0 900 80" preserveAspectRatio="none" fill="none">
           <!-- Sunrise column (left) -->
           <text x="8" y="26" font-size="9" fill="rgba(237,170,30,0.5)" font-family="Inter,sans-serif" font-weight="600" text-anchor="start" letter-spacing="0.14em">SUNRISE</text>
           <text x="8" y="44" font-size="13" fill="rgba(237,170,30,0.9)" font-family="Inter,sans-serif" font-weight="300" text-anchor="start">☀︎↑</text>
@@ -375,7 +375,7 @@ function buildDots(){const c=$('sdEl');c.innerHTML='';const n=Math.min(stories.l
 function showStory(){if(!stories.length)return;const st=stories[si%stories.length];const el=$('stEl'),ne=$('snEl');el.style.opacity='0';ne.style.opacity='0';setTimeout(()=>{el.innerHTML=st.t;ne.textContent=st.n||'';el.style.opacity='1';ne.style.opacity='1';buildDots();si++;},520);}
 
 // ── GENERAL SOLAR FACTS (bottom bar) ────────────────────────
-// Loaded from facts.json (AI-generated via Claude API in GitHub Actions)
+// Loaded from facts.json (AI-generated via Claude API on server)
 // Falls back to hardcoded pool if facts.json unavailable
 const fallbackFacts=[
   'One hour of sunlight hitting Earth carries more energy than all of humanity uses in <strong>an entire year</strong>',
@@ -538,8 +538,6 @@ async function fetchData(){
     const d=await dr.json();
     let hist=[];
     try{hist=await hr.json();}catch(e){}
-    // Retry history once if it failed (sometimes CDN serves stale response)
-    if(!Array.isArray(hist)||hist.length===0){try{const hr2=await fetch('/history.json?t='+Date.now()+'r');hist=await hr2.json();}catch(e){}}
     if(d.status!=='ok')return;
     lastFetchTime=Date.now();
     const rawKW=parseFloat(d.currentKW);
@@ -559,7 +557,7 @@ async function fetchData(){
         $('kwEl').textContent=displayKW.toFixed(1);
         const cp=Math.min(1,displayKW/4975);setRing(cp);
         $('capEl').textContent=(cp*100).toFixed(1)+'% capacity';
-        if(displayKW>0)$('homesEl').textContent='≈ '+homes(displayKW*0.5).toLocaleString()+' homes';
+        $('homesEl').textContent=displayKW>0?'≈ '+homes(displayKW*0.5).toLocaleString()+' homes':'';
         console.log('API dropout — using last good kW:',fallback);
       }
     }else{
@@ -571,9 +569,9 @@ async function fetchData(){
       }else{$('kwEl').textContent=kw>0?kw.toFixed(1):'—';}
       const cp=Math.min(1,kw/4975);setRing(cp);
       $('capEl').textContent=(cp*100).toFixed(1)+'% capacity';
-      if(kw>0)$('homesEl').textContent='≈ '+homes(kw*0.5).toLocaleString()+' homes';
+      $('homesEl').textContent=kw>0?'≈ '+homes(kw*0.5).toLocaleString()+' homes':'';
     }
-    const sp=(n,u,s,o,fn)=>{if(!o)return;$(n).textContent=o.value;$(u).textContent=o.unit;if(s)$(s).textContent=fn(toKwh(o.value,o.unit));};
+    const sp=(n,u,s,o,fn)=>{if(!o)return;$(n).textContent=o.value;$(u).textContent=o.unit;if(s){const k=toKwh(o.value,o.unit);$(s).textContent=k>0?fn(k):'';}};
     sp('tdN','tdU','tdS',d.todayKWh,k=>'≈ '+homes(k).toLocaleString()+' homes');
     sp('ydN','ydU','ydS',d.yesterdayKWh,k=>'≈ '+homes(k).toLocaleString()+' homes');
     sp('l3N','l3U','l3S',d.last30Days,k=>'≈ '+homes(k/30).toLocaleString()+' homes/day');
@@ -635,8 +633,10 @@ setTimeout(()=>location.reload(),30*60*1000);
 let fetchFails=0;
 function updateConnStatus(ok){
   const pip=$('livePip'),txt=$('liveTxt');
-  if(ok){fetchFails=0;pip.style.background='var(--green)';pip.style.boxShadow='0 0 8px var(--green)';txt.textContent='Live';}
-  else{fetchFails++;if(fetchFails>=3){pip.style.background='#E04040';pip.style.boxShadow='0 0 8px #E04040';txt.textContent='Reconnecting';}}
+  if(ok){fetchFails=0;
+    // Don't override offline state — only restore green if facility is online
+    if(!facilityOffline){pip.style.background='var(--green)';pip.style.boxShadow='0 0 8px var(--green)';txt.textContent='Live';}
+  }else{fetchFails++;if(fetchFails>=3&&!facilityOffline){pip.style.background='#E04040';pip.style.boxShadow='0 0 8px #E04040';txt.textContent='Reconnecting';}}
 }
 
 // 6. Patch fetchData for error recovery
@@ -645,7 +645,7 @@ fetchData=async function(){try{await _origFetchData();updateConnStatus(true);}ca
 
 // Initial fetch (after wrapper so error recovery works from first load)
 fetchData();
-setInterval(fetchData,60*1000);setInterval(fetchWx,60*60*1000);
+setInterval(fetchData,5*60*1000);setInterval(fetchWx,60*60*1000);
 
 // 7. Sunrise countdown — flip-clock style
 let prevCD={h0:'',h1:'',m0:'',m1:''};
