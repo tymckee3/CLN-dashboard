@@ -63,7 +63,13 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;back
 .s-dot{width:5px;height:5px;border-radius:50%;background:var(--t4);transition:background .4s;}
 .s-dot.on{background:var(--gold);}
 .arc-zone{width:100%;flex-shrink:0;padding:2px 0;}
-.arc-svg-wrap{width:100%;height:80px;}
+.arc-top{display:flex;justify-content:space-between;align-items:flex-end;padding:0 2px 2px;}
+.arc-lbl{display:flex;flex-direction:column;}
+.arc-lbl-t{font-size:.72rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:rgba(237,170,30,0.5);}
+.arc-lbl-v{font-family:'Bebas Neue',sans-serif;font-size:1.15rem;color:rgba(237,170,30,0.9);letter-spacing:.04em;line-height:1.1;}
+.arc-lbl-r .arc-lbl-t,.arc-lbl-r .arc-lbl-v{text-align:right;}
+.arc-noon{font-family:var(--mono);font-size:.6rem;color:rgba(237,241,255,0.2);letter-spacing:.1em;text-transform:uppercase;}
+.arc-svg-wrap{width:100%;height:50px;}
 .arc-svg-wrap svg{width:100%;height:100%;}
 .deep-zone{flex:1;display:flex;flex-direction:column;gap:5px;min-height:0;}
 .wx-strip{display:flex;flex-shrink:0;padding:3px 0 4px;}
@@ -218,25 +224,26 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;back
       </div>
     </div>
     <div class="arc-zone">
+      <div class="arc-top">
+        <div class="arc-lbl arc-lbl-l">
+          <span class="arc-lbl-t">Sunrise</span>
+          <span class="arc-lbl-v">☀︎↑ <span id="rLbl">—</span></span>
+        </div>
+        <span class="arc-noon">Solar Noon</span>
+        <div class="arc-lbl arc-lbl-r">
+          <span class="arc-lbl-t">Sunset</span>
+          <span class="arc-lbl-v"><span id="sLbl">—</span> ☀︎↓</span>
+        </div>
+      </div>
       <div class="arc-svg-wrap">
-        <svg viewBox="0 0 900 80" preserveAspectRatio="none" fill="none">
-          <!-- Sunrise column (left) -->
-          <text x="8" y="26" font-size="9" fill="rgba(237,170,30,0.5)" font-family="Inter,sans-serif" font-weight="600" text-anchor="start" letter-spacing="0.14em">SUNRISE</text>
-          <text x="8" y="44" font-size="13" fill="rgba(237,170,30,0.9)" font-family="Inter,sans-serif" font-weight="300" text-anchor="start">☀︎↑</text>
-          <text id="rLbl" x="26" y="44" font-size="17" font-weight="700" fill="rgba(237,170,30,0.9)" font-family="Bebas Neue,sans-serif" text-anchor="start" letter-spacing="0.04em">—</text>
-          <!-- Sunset column (right) -->
-          <text x="892" y="26" font-size="9" fill="rgba(237,170,30,0.5)" font-family="Inter,sans-serif" font-weight="600" text-anchor="end" letter-spacing="0.14em">SUNSET</text>
-          <text x="892" y="44" font-size="13" fill="rgba(237,170,30,0.9)" font-family="Inter,sans-serif" font-weight="300" text-anchor="end">☀︎↓</text>
-          <text id="sLbl" x="874" y="44" font-size="17" font-weight="700" fill="rgba(237,170,30,0.9)" font-family="Bebas Neue,sans-serif" text-anchor="end" letter-spacing="0.04em">—</text>
-          <!-- Arc area (center) -->
-          <line x1="120" y1="64" x2="780" y2="64" stroke="rgba(237,241,255,0.07)" stroke-width="1"/>
-          <line x1="450" y1="16" x2="450" y2="64" stroke="rgba(237,241,255,0.05)" stroke-width="1" stroke-dasharray="3,4"/>
-          <text x="450" y="10" font-size="7" fill="rgba(237,241,255,0.2)" font-family="SF Mono,Fira Code,monospace" text-anchor="middle">SOLAR NOON</text>
+        <svg viewBox="0 0 900 50" preserveAspectRatio="none" fill="none">
+          <line x1="0" y1="44" x2="900" y2="44" stroke="rgba(237,241,255,0.07)" stroke-width="1"/>
+          <line x1="450" y1="4" x2="450" y2="44" stroke="rgba(237,241,255,0.05)" stroke-width="1" stroke-dasharray="3,4"/>
           <polyline id="arcBg" points="" stroke="rgba(237,241,255,0.07)" stroke-width="1.5" fill="none"/>
           <polyline id="arcP" points="" stroke="rgba(237,170,30,0.32)" stroke-width="2" fill="none"/>
           <polyline id="arcG" points="" stroke="rgba(237,170,30,0.6)" stroke-width="1" fill="none"/>
-          <circle id="sunH" cx="120" cy="64" r="12" fill="rgba(237,170,30,0.15)"/>
-          <circle id="sunD" cx="120" cy="64" r="6" fill="#EDAA1E" style="animation:arcGlow 3s ease-in-out infinite;"/>
+          <circle id="sunH" cx="0" cy="44" r="10" fill="rgba(237,170,30,0.15)"/>
+          <circle id="sunD" cx="0" cy="44" r="5" fill="#EDAA1E" style="animation:arcGlow 3s ease-in-out infinite;"/>
         </svg>
       </div>
     </div>
@@ -276,8 +283,8 @@ function updateSun(){
   const pct=Math.max(0,Math.min(1,(nowH-rise)/(set-rise)));
   const isNight=nowH<rise||nowH>set;
   $('rLbl').textContent=riseStr;$('sLbl').textContent=setStr;
-  // p=0=sunrise(x=120) p=1=sunset(x=780) peak at noon(x=450,y~16)
-  function sunPt(p){return{x:120+660*p,y:64-48*Math.sin(Math.PI*p)};}
+  // p=0=sunrise(x=0) p=1=sunset(x=900) peak at noon(x=450,y~4)
+  function sunPt(p){return{x:900*p,y:44-40*Math.sin(Math.PI*p)};}
   // Build full background arc as matching sine polyline
   let bgPts=[];for(let i=0;i<=60;i++){const t=i/60;const pt=sunPt(t);bgPts.push(pt.x.toFixed(1)+','+pt.y.toFixed(1));}
   $('arcBg').setAttribute('points',bgPts.join(' '));
