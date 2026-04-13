@@ -269,23 +269,17 @@ async function scrape() {
     if (historyEnergy?.items?.length) {
       for (const item of historyEnergy.items) {
         const kwh = Math.max(0, Math.round(item.data?.[0] || 0));
-        if (kwh > 0) {
-          history.push({
-            date: item.timestamp.split('T')[0],
-            kwhProduced: kwh,
-            unit: 'kWh',
-            source: 'alsoenergy-api'
-          });
-        }
+        history.push({
+          date: item.timestamp.split('T')[0],
+          kwhProduced: kwh,
+          unit: 'kWh',
+          source: 'alsoenergy-api'
+        });
       }
     }
 
-    if (history.length > 0) {
-      fs.writeFileSync(path.join(PUBLIC, 'history.json'), JSON.stringify(history, null, 2));
-      console.log(`  history.json: ${history.length} days`);
-    } else {
-      console.log('  No history data — keeping existing history.json');
-    }
+    fs.writeFileSync(path.join(PUBLIC, 'history.json'), JSON.stringify(history, null, 2));
+    console.log(`  history.json: ${history.length} days`);
 
     console.log('  Scrape complete.');
   } catch (e) {
