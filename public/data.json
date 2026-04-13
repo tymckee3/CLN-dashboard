@@ -19,14 +19,14 @@
   "co2OffsetTons30d": "269.3",
   "sunrise": "6:37 AM MDT",
   "sunset": "7:37 PM MDT",
-  "sunElevation": 63.5,
+  "sunElevation": 63.1,
   "weather": {
-    "tempF": 68,
+    "tempF": 66,
     "condition": "Light rain",
     "windSpeed": 0,
     "icon": "lightrain"
   },
-  "scrapedAt": "2026-04-13T19:29:23.318Z",
+  "scrapedAt": "2026-04-13T19:37:26.443Z",
   "lastGoodKW": "529.8",
   "lastGoodKWTime": "2026-04-02T14:41:59.695Z",
   "source": "alsoenergy-api"
