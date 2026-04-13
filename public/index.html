@@ -656,7 +656,7 @@ fetchData=async function(){try{await _origFetchData();updateConnStatus(true);}ca
 
 // Initial fetch (after wrapper so error recovery works from first load)
 fetchData();
-setInterval(fetchData,5*60*1000);setInterval(fetchWx,60*60*1000);
+setInterval(fetchData,60*1000);setInterval(fetchWx,60*60*1000);
 
 // 7. Sunrise countdown — flip-clock style
 let prevCD={h0:'',h1:'',m0:'',m1:''};
