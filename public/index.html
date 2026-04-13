@@ -63,7 +63,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;back
 .s-dot{width:5px;height:5px;border-radius:50%;background:var(--t4);transition:background .4s;}
 .s-dot.on{background:var(--gold);}
 .arc-zone{width:100%;flex-shrink:0;padding:2px 0;}
-.arc-svg-wrap{width:100%;height:90px;}
+.arc-svg-wrap{width:100%;height:80px;}
 .arc-svg-wrap svg{width:100%;height:100%;}
 .deep-zone{flex:1;display:flex;flex-direction:column;gap:5px;min-height:0;}
 .wx-strip{display:flex;flex-shrink:0;padding:3px 0 4px;}
@@ -219,26 +219,24 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;back
     </div>
     <div class="arc-zone">
       <div class="arc-svg-wrap">
-        <svg viewBox="0 0 900 90" preserveAspectRatio="none" fill="none">
-          <!-- Horizon line -->
-          <line x1="40" y1="68" x2="860" y2="68" stroke="rgba(237,241,255,0.07)" stroke-width="1"/>
-          <!-- Noon dashed line -->
-          <line x1="450" y1="18" x2="450" y2="68" stroke="rgba(237,241,255,0.06)" stroke-width="1" stroke-dasharray="3,4"/>
-          <!-- SOLAR NOON label (above arc peak) -->
-          <text x="450" y="10" font-size="7" fill="rgba(237,241,255,0.22)" font-family="SF Mono,Fira Code,monospace" text-anchor="middle">SOLAR NOON</text>
-          <!-- Arc curves -->
+        <svg viewBox="0 0 900 80" fill="none">
+          <!-- Sunrise column (left) -->
+          <text x="8" y="26" font-size="9" fill="rgba(237,170,30,0.5)" font-family="Inter,sans-serif" font-weight="600" text-anchor="start" letter-spacing="0.14em">SUNRISE</text>
+          <text x="8" y="44" font-size="13" fill="rgba(237,170,30,0.9)" font-family="Inter,sans-serif" font-weight="300" text-anchor="start">☀︎↑</text>
+          <text id="rLbl" x="26" y="44" font-size="17" font-weight="700" fill="rgba(237,170,30,0.9)" font-family="Bebas Neue,sans-serif" text-anchor="start" letter-spacing="0.04em">—</text>
+          <!-- Sunset column (right) -->
+          <text x="892" y="26" font-size="9" fill="rgba(237,170,30,0.5)" font-family="Inter,sans-serif" font-weight="600" text-anchor="end" letter-spacing="0.14em">SUNSET</text>
+          <text x="892" y="44" font-size="13" fill="rgba(237,170,30,0.9)" font-family="Inter,sans-serif" font-weight="300" text-anchor="end">☀︎↓</text>
+          <text id="sLbl" x="874" y="44" font-size="17" font-weight="700" fill="rgba(237,170,30,0.9)" font-family="Bebas Neue,sans-serif" text-anchor="end" letter-spacing="0.04em">—</text>
+          <!-- Arc area (center) -->
+          <line x1="120" y1="64" x2="780" y2="64" stroke="rgba(237,241,255,0.07)" stroke-width="1"/>
+          <line x1="450" y1="16" x2="450" y2="64" stroke="rgba(237,241,255,0.05)" stroke-width="1" stroke-dasharray="3,4"/>
+          <text x="450" y="10" font-size="7" fill="rgba(237,241,255,0.2)" font-family="SF Mono,Fira Code,monospace" text-anchor="middle">SOLAR NOON</text>
           <polyline id="arcBg" points="" stroke="rgba(237,241,255,0.07)" stroke-width="1.5" fill="none"/>
           <polyline id="arcP" points="" stroke="rgba(237,170,30,0.32)" stroke-width="2" fill="none"/>
           <polyline id="arcG" points="" stroke="rgba(237,170,30,0.6)" stroke-width="1" fill="none"/>
-          <!-- Sun dot -->
-          <circle id="sunH" cx="40" cy="68" r="13" fill="rgba(237,170,30,0.15)"/>
-          <circle id="sunD" cx="40" cy="68" r="7" fill="#EDAA1E" style="animation:arcGlow 3s ease-in-out infinite;"/>
-          <!-- Sunrise label (below horizon) -->
-          <text x="40" y="82" font-size="8" fill="rgba(237,170,30,0.55)" font-family="Inter,sans-serif" font-weight="600" text-anchor="start" letter-spacing="0.12em">SUNRISE</text>
-          <text id="rLbl" x="40" y="90" font-size="10" font-weight="600" fill="rgba(237,170,30,0.85)" font-family="Bebas Neue,sans-serif" text-anchor="start" letter-spacing="0.04em">—</text>
-          <!-- Sunset label (below horizon) -->
-          <text x="860" y="82" font-size="8" fill="rgba(237,170,30,0.55)" font-family="Inter,sans-serif" font-weight="600" text-anchor="end" letter-spacing="0.12em">SUNSET</text>
-          <text id="sLbl" x="860" y="90" font-size="10" font-weight="600" fill="rgba(237,170,30,0.85)" font-family="Bebas Neue,sans-serif" text-anchor="end" letter-spacing="0.04em">—</text>
+          <circle id="sunH" cx="120" cy="64" r="12" fill="rgba(237,170,30,0.15)"/>
+          <circle id="sunD" cx="120" cy="64" r="6" fill="#EDAA1E" style="animation:arcGlow 3s ease-in-out infinite;"/>
         </svg>
       </div>
     </div>
@@ -278,8 +276,8 @@ function updateSun(){
   const pct=Math.max(0,Math.min(1,(nowH-rise)/(set-rise)));
   const isNight=nowH<rise||nowH>set;
   $('rLbl').textContent=riseStr;$('sLbl').textContent=setStr;
-  // p=0=sunrise(left,x=40) p=1=sunset(right,x=860) peak at noon(x=450,y~18)
-  function sunPt(p){return{x:40+820*p,y:68-50*Math.sin(Math.PI*p)};}
+  // p=0=sunrise(x=120) p=1=sunset(x=780) peak at noon(x=450,y~16)
+  function sunPt(p){return{x:120+660*p,y:64-48*Math.sin(Math.PI*p)};}
   // Build full background arc as matching sine polyline
   let bgPts=[];for(let i=0;i<=60;i++){const t=i/60;const pt=sunPt(t);bgPts.push(pt.x.toFixed(1)+','+pt.y.toFixed(1));}
   $('arcBg').setAttribute('points',bgPts.join(' '));
@@ -588,12 +586,13 @@ async function fetchData(){
     buildStories(d);
     // ── Facility offline detection ─────────────────────────
     const nowHr=new Date().getHours()+new Date().getMinutes()/60;
-    const isDaylight=nowHr>=sunCache.rise+0.5&&nowHr<=sunCache.set-0.5; // half-hour buffer
+    const isDaylight=nowHr>=sunCache.rise+0.5&&nowHr<=sunCache.set-0.5;
+    const wellPastSunrise=nowHr>=sunCache.rise+2; // 2+ hrs after sunrise
     const irr=wxCache.irr||0;
     const realKW=parseFloat(d.currentKW)||0;
     const realToday=toKwh(d.todayKWh?.value,d.todayKWh?.unit);
-    // Offline = daytime + decent irradiance + zero production for the day
-    const isOffline=isDaylight&&irr>80&&realKW===0&&realToday<50;
+    // Offline = daytime + zero production + (good irradiance OR well past sunrise)
+    const isOffline=isDaylight&&realKW===0&&realToday<50&&(irr>80||wellPastSunrise);
     setOfflineState(isOffline);
   }catch(e){
     console.error(e);
