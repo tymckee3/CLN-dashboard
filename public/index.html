@@ -90,6 +90,15 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;back
 .bt-tag{font-size:.85rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);white-space:nowrap;padding-right:16px;border-right:1px solid var(--border);flex-shrink:0;}
 .bt-msg{font-size:1.2rem;color:var(--t2);padding:0 18px;animation:fadeUp .5s ease;}
 .bt-msg strong{color:var(--t1);font-weight:600;}
+.offline-badge{position:absolute;top:14px;left:50%;transform:translateX(-50%);display:none;align-items:center;gap:8px;padding:6px 22px;border-radius:20px;background:rgba(224,64,64,0.12);border:1px solid rgba(224,64,64,0.3);z-index:10;}
+.offline-badge.on{display:flex;}
+.offline-badge .ob-dot{width:8px;height:8px;border-radius:50%;background:#E04040;box-shadow:0 0 8px #E04040;animation:pipBlink 2.2s ease-in-out infinite;}
+.offline-badge .ob-txt{font-size:.82rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#E04040;}
+.offline-banner{width:100%;text-align:center;padding:8px 16px;display:none;}
+.offline-banner.on{display:block;}
+.offline-banner .ob-main{font-size:clamp(1rem,1.8vw,1.3rem);color:var(--t2);line-height:1.5;}
+.offline-banner .ob-main strong{color:var(--t1);font-weight:600;}
+.offline-banner .ob-main{transition:opacity .4s ease;}
 .night{position:fixed;inset:0;z-index:100;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;opacity:0;pointer-events:none;transition:opacity 5s ease-in-out;}
 .night.on{opacity:1;pointer-events:all;}
 .night-grid{position:absolute;inset:0;pointer-events:none;z-index:0;}
@@ -145,6 +154,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;back
   <div class="n-sr" id="nightSr" style="margin-top:18px;font-size:1.1rem;color:var(--t2);letter-spacing:.12em;"></div>
 </div>
 <div class="root">
+<div class="offline-badge" id="offBadge"><div class="ob-dot"></div><span class="ob-txt">Facility Offline</span></div>
 <header class="hdr">
   <div class="hdr-l">
     <svg class="sun-s" viewBox="0 0 32 32" fill="none">
@@ -202,6 +212,9 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;back
         <div class="s-text" id="stEl">Loading...</div>
         <div class="s-note" id="snEl"></div>
         <div class="s-dots" id="sdEl"></div>
+      </div>
+      <div class="offline-banner" id="offBanner">
+        <div class="ob-main" id="offFactEl"></div>
       </div>
     </div>
     <div class="arc-zone">
@@ -404,6 +417,51 @@ async function fetchFacts(){
 }
 function showInsight(){if(!facts.length)return;const el=$('btmEl');el.style.animation='none';void el.offsetHeight;el.style.animation='fadeUp .5s ease';el.innerHTML=facts[fi%facts.length];fi++;}
 // ── ANIMATED NUMBER COUNTER ──────────────────────────────────
+// ── FACILITY OFFLINE DETECTION + O&M FACTS ──────────────────
+let facilityOffline=false, omFactIdx=0;
+const omFacts=[
+  'Solar panels have <strong>no moving parts</strong> — that means less can break compared to other power plants!',
+  'Technicians check solar panels regularly, kind of like how a <strong>doctor gives you a checkup</strong>',
+  'Sometimes a <strong>fuse</strong> needs replacing — fuses are tiny safety switches that protect the electrical system',
+  'Solar panels are tough! They\'re built to survive <strong>hail, wind, and rain</strong> for 25+ years',
+  'Birds and dust can block sunlight from reaching panels, so crews <strong>clean them</strong> a few times a year',
+  'A solar farm this size has <strong>20 inverters</strong> — they convert sunshine into the kind of electricity your home uses',
+  'When one part of a solar farm needs repair, the rest can <strong>keep making power</strong> — like a team!',
+  'Maintenance crews use <strong>thermal cameras</strong> to find hot spots on panels that might need fixing',
+  'Even when a solar farm is offline for maintenance, it produces <strong>zero pollution</strong> — unlike a gas plant idling',
+  'Solar panels are <strong>over 90% recyclable</strong> — the glass, metal, and silicon can all be reused',
+  'The wires connecting solar panels can stretch for <strong>miles</strong> — technicians check every connection',
+  'After a repair, this solar farm will be back to powering <strong>hundreds of homes</strong> with clean energy!',
+  'A fuse in a solar farm works just like the <strong>circuit breakers in your house</strong> — they keep things safe',
+  'Robots and drones are starting to help <strong>inspect solar farms</strong> — technology helping technology!',
+  'This facility will be back online soon — maintenance keeps the farm running strong for <strong>decades to come</strong>',
+];
+function showOmFact(){
+  const el=$('offFactEl');if(!el)return;
+  el.style.opacity='0';
+  setTimeout(()=>{
+    el.innerHTML=omFacts[omFactIdx%omFacts.length];
+    el.style.opacity='1';
+    omFactIdx++;
+  },400);
+}
+function setOfflineState(offline){
+  if(facilityOffline===offline)return;
+  facilityOffline=offline;
+  const badge=$('offBadge'),banner=$('offBanner'),storyZone=$('stEl'),storyNote=$('snEl'),storyDots=$('sdEl');
+  const pip=$('livePip'),txt=$('liveTxt');
+  if(offline){
+    badge.classList.add('on');banner.classList.add('on');
+    storyZone.style.display='none';storyNote.style.display='none';storyDots.style.display='none';
+    pip.style.background='#E04040';pip.style.boxShadow='0 0 8px #E04040';txt.textContent='Offline';
+    showOmFact();
+  }else{
+    badge.classList.remove('on');banner.classList.remove('on');
+    storyZone.style.display='';storyNote.style.display='';storyDots.style.display='';
+    pip.style.background='var(--green)';pip.style.boxShadow='0 0 8px var(--green)';txt.textContent='Live';
+  }
+}
+
 let lastKW=0, displayKW=0, interpTimer=null, lastFetchTime=0;
 function animateValue(el,from,to,duration,fmt){
   const start=performance.now();
@@ -527,6 +585,15 @@ async function fetchData(){
     if(d.weather)applyWeather(d.weather);
     if(hist.length>0){const rec=hist.slice(-7);const lbl=rec.map(h=>{const dt=new Date(h.date+'T12:00:00');return dt.toLocaleDateString('en-US',{weekday:'short',month:'numeric',day:'numeric'});});makeCombo(lbl,rec.map(h=>h.kwhProduced));}
     buildStories(d);
+    // ── Facility offline detection ─────────────────────────
+    const nowHr=new Date().getHours()+new Date().getMinutes()/60;
+    const isDaylight=nowHr>=sunCache.rise+0.5&&nowHr<=sunCache.set-0.5; // half-hour buffer
+    const irr=wxCache.irr||0;
+    const realKW=parseFloat(d.currentKW)||0;
+    const realToday=toKwh(d.todayKWh?.value,d.todayKWh?.unit);
+    // Offline = daytime + decent irradiance + zero production for the day
+    const isOffline=isDaylight&&irr>80&&realKW===0&&realToday<50;
+    setOfflineState(isOffline);
   }catch(e){
     console.error(e);
     // If this is the first load (still showing "Loading..."), show error state and schedule fast retry
@@ -536,7 +603,7 @@ async function fetchData(){
   }
 }
 fetchWx();fetchFacts();
-showStory();setInterval(showStory,14*1000);
+showStory();setInterval(()=>{if(facilityOffline)showOmFact();else showStory();},14*1000);
 showInsight();setInterval(showInsight,18*1000);
 setInterval(fetchFacts,30*60*1000); // refresh facts every 30 min
 
