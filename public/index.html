@@ -262,7 +262,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;back
   <div class="sc sc-r">
     <div class="si"><div class="si-lbl">CO₂ Offset · 30d</div><div class="si-row"><span class="si-n gr" id="co2N">—</span><span class="si-u">&nbsp;tons</span></div><div class="si-s" id="co2S"></div></div>
     <div class="si-div"></div>
-    <div class="si"><div class="si-lbl">Solar Irradiance</div><div class="si-row"><span class="si-n" id="irrSide">—</span><span class="si-u">&nbsp;W/m²</span></div><div class="irr-track"><div class="irr-fill" id="irrSideBar" style="width:0%"></div></div><div class="si-s" id="irrSideNote"></div></div>
+    <div class="si"><div class="si-lbl">Today's Offset</div><div class="si-row"><span class="si-n au" id="offN">—</span><span class="si-u" id="offU">&nbsp;lbs CO₂</span></div><div class="si-s" id="offS"></div></div>
     <div class="si-div"></div>
     <div class="si"><div class="si-lbl">System</div><div class="si-row"><span class="si-n">4,975</span><span class="si-u">&nbsp;kW AC</span></div><div class="si-s">6,499 kW DC · 20 Inverters</div></div>
   </div>
@@ -358,7 +358,6 @@ function applyWeather(wx){
   const elev=wxCache.elev||40;
   const irr=wxCache.irr||Math.round(Math.max(0,1000*Math.sin(elev*Math.PI/180))*(100-cld)/100);
   $('wxIrr').textContent=irr;$('wxIrrBar').style.width=Math.min(100,irr/10)+'%';
-  $('irrSide').textContent=irr;$('irrSideBar').style.width=Math.min(100,irr/10)+'%';$('irrSideNote').textContent=cond;
 }
 // ── PRODUCTION STORIES (center, under kW gauge) ─────────────
 let stories=[],si=0;
@@ -583,6 +582,11 @@ async function fetchData(){
     sp('ydN','ydU','ydS',d.yesterdayKWh,k=>'≈ '+homes(k).toLocaleString()+' homes');
     sp('l3N','l3U','l3S',d.last30Days,k=>'≈ '+homes(k/30).toLocaleString()+' homes/day');
     if(d.co2OffsetTons30d){$('co2N').textContent=d.co2OffsetTons30d;$('co2S').textContent='= '+Math.round(parseFloat(d.co2OffsetTons30d)*48).toLocaleString()+' trees';}
+    // Today's CO₂ offset (EPA: 0.851 lbs CO₂ per kWh)
+    const todayOff=todayKwh*0.851;
+    if(todayOff>2000){$('offN').textContent=(todayOff/2000).toFixed(1);$('offU').textContent=' tons CO₂';}
+    else{$('offN').textContent=todayOff>0?Math.round(todayOff).toLocaleString():'0';$('offU').textContent=' lbs CO₂';}
+    $('offS').textContent=todayOff>0?'≈ '+Math.round(todayKwh*0.0436).toLocaleString()+' gallons of gas':'';
     nightStatsCache={yesterdayKWh:d.yesterdayKWh,co2OffsetTons30d:d.co2OffsetTons30d};updateNightStats();
     if(d.sunrise&&d.sunset){const rH=parseTimeStr(d.sunrise),sH=parseTimeStr(d.sunset);if(rH&&sH){sunCache={rise:rH,set:sH,riseStr:d.sunrise.replace(/\s*(MDT|MST)\s*/g,'').trim(),setStr:d.sunset.replace(/\s*(MDT|MST)\s*/g,'').trim()};updateSun();}}
     if(d.sunElevation)wxCache.elev=d.sunElevation;
