@@ -265,21 +265,29 @@ async function scrape() {
     }));
 
     // ── Build history.json ─────────────────────────────────
-    const history = [];
+    // Build a lookup from API results, then fill all 30 calendar days
+    const apiDays = {};
     if (historyEnergy?.items?.length) {
       for (const item of historyEnergy.items) {
-        const kwh = Math.max(0, Math.round(item.data?.[0] || 0));
-        history.push({
-          date: item.timestamp.split('T')[0],
-          kwhProduced: kwh,
-          unit: 'kWh',
-          source: 'alsoenergy-api'
-        });
+        const date = item.timestamp.split('T')[0];
+        apiDays[date] = Math.max(0, Math.round(item.data?.[0] || 0));
       }
+    }
+    // Generate every date from 30 days ago to yesterday
+    const history = [];
+    for (let i = 30; i >= 1; i--) {
+      const d = addDays(now, -i);
+      const date = fmtDate(d);
+      history.push({
+        date,
+        kwhProduced: apiDays[date] || 0,
+        unit: 'kWh',
+        source: 'alsoenergy-api'
+      });
     }
 
     fs.writeFileSync(path.join(PUBLIC, 'history.json'), JSON.stringify(history, null, 2));
-    console.log(`  history.json: ${history.length} days`);
+    console.log(`  history.json: ${history.length} days (${Object.keys(apiDays).length} with production)`);
 
     console.log('  Scrape complete.');
   } catch (e) {
