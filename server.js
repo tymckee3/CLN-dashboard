@@ -234,21 +234,69 @@ async function scrape() {
           .catch(e => { console.error('currentPower:', e.message); return null; })
       : Promise.resolve(null);
 
+    // Energy query fields — try site-level first, fall back to meter-level
+    const siteEnergyField = [{ siteId: SITE_ID, fieldName: 'ProdKWH', function: 'Diff' }];
+    const meterEnergyField = METER_ID
+      ? [{ hardwareId: METER_ID, fieldName: 'KWH', function: 'Diff' }]
+      : siteEnergyField;
+
     const [currentPower, todayEnergy, yesterdayEnergy, historyEnergy, weather, sunTimes] = await Promise.all([
       currentPowerQuery,
-      binData(token, todayStart, nowLocal, 'BinDay',
-        [{ siteId: SITE_ID, fieldName: 'ProdKWH', function: 'Diff' }])
+      binData(token, todayStart, nowLocal, 'BinDay', siteEnergyField)
         .catch(e => { console.error('todayEnergy:', e.message); return null; }),
-      binData(token, yesterdayStart, yesterdayEnd, 'BinDay',
-        [{ siteId: SITE_ID, fieldName: 'ProdKWH', function: 'Diff' }])
+      binData(token, yesterdayStart, yesterdayEnd, 'BinDay', siteEnergyField)
         .catch(e => { console.error('yesterdayEnergy:', e.message); return null; }),
-      binData(token, fmtDate(thirtyDaysAgo) + 'T00:00:00', yesterdayEnd, 'BinDay',
-        [{ siteId: SITE_ID, fieldName: 'ProdKWH', function: 'Diff' }])
+      binData(token, fmtDate(thirtyDaysAgo) + 'T00:00:00', yesterdayEnd, 'BinDay', siteEnergyField)
         .catch(e => { console.error('historyEnergy:', e.message); return null; }),
       api(token, 'GET', `/Sites/${SITE_ID}/Weather`)
         .catch(e => { console.error('weather:', e.message); return null; }),
       getSunTimes()
     ]);
+
+    // ── Check if site-level energy returned data; if not, retry with meter-level ──
+    const siteEnergyEmpty = !historyEnergy?.items?.length ||
+      historyEnergy.items.every(i => i.data?.[0] == null || i.data[0] === 0);
+
+    let todayEnergyFinal = todayEnergy;
+    let yesterdayEnergyFinal = yesterdayEnergy;
+    let historyEnergyFinal = historyEnergy;
+
+    if (siteEnergyEmpty && METER_ID) {
+      console.log('  Site-level ProdKWH empty — retrying with meter-level KWH...');
+      const [mToday, mYesterday, mHistory] = await Promise.all([
+        binData(token, todayStart, nowLocal, 'BinDay', meterEnergyField)
+          .catch(e => { console.error('meter todayEnergy:', e.message); return null; }),
+        binData(token, yesterdayStart, yesterdayEnd, 'BinDay', meterEnergyField)
+          .catch(e => { console.error('meter yesterdayEnergy:', e.message); return null; }),
+        binData(token, fmtDate(thirtyDaysAgo) + 'T00:00:00', yesterdayEnd, 'BinDay', meterEnergyField)
+          .catch(e => { console.error('meter historyEnergy:', e.message); return null; }),
+      ]);
+      if (mHistory?.items?.length) {
+        console.log('  Meter-level KWH returned data — using meter queries.');
+        todayEnergyFinal = mToday;
+        yesterdayEnergyFinal = mYesterday;
+        historyEnergyFinal = mHistory;
+      } else {
+        console.log('  Meter-level KWH also empty — trying meter ProdKWH...');
+        const [pToday, pYesterday, pHistory] = await Promise.all([
+          binData(token, todayStart, nowLocal, 'BinDay',
+            [{ hardwareId: METER_ID, fieldName: 'ProdKWH', function: 'Diff' }])
+            .catch(e => null),
+          binData(token, yesterdayStart, yesterdayEnd, 'BinDay',
+            [{ hardwareId: METER_ID, fieldName: 'ProdKWH', function: 'Diff' }])
+            .catch(e => null),
+          binData(token, fmtDate(thirtyDaysAgo) + 'T00:00:00', yesterdayEnd, 'BinDay',
+            [{ hardwareId: METER_ID, fieldName: 'ProdKWH', function: 'Diff' }])
+            .catch(e => null),
+        ]);
+        if (pHistory?.items?.length) {
+          console.log('  Meter-level ProdKWH returned data.');
+          todayEnergyFinal = pToday;
+          yesterdayEnergyFinal = pYesterday;
+          historyEnergyFinal = pHistory;
+        }
+      }
+    }
 
     // ── Parse current kW ───────────────────────────────────
     let currentKW = '—';
@@ -274,16 +322,16 @@ async function scrape() {
 
     // ── Parse energy totals ────────────────────────────────
     let todayKWh = 0;
-    if (todayEnergy?.items?.[0]?.data?.[0] != null)
-      todayKWh = Math.max(0, Math.round(todayEnergy.items[0].data[0]));
+    if (todayEnergyFinal?.items?.[0]?.data?.[0] != null)
+      todayKWh = Math.max(0, Math.round(todayEnergyFinal.items[0].data[0]));
 
     let yesterdayKWh = 0;
-    if (yesterdayEnergy?.items?.[0]?.data?.[0] != null)
-      yesterdayKWh = Math.max(0, Math.round(yesterdayEnergy.items[0].data[0]));
+    if (yesterdayEnergyFinal?.items?.[0]?.data?.[0] != null)
+      yesterdayKWh = Math.max(0, Math.round(yesterdayEnergyFinal.items[0].data[0]));
 
     let last30DaysKWh = 0;
-    if (historyEnergy?.items?.length) {
-      last30DaysKWh = historyEnergy.items.reduce((sum, item) => {
+    if (historyEnergyFinal?.items?.length) {
+      last30DaysKWh = historyEnergyFinal.items.reduce((sum, item) => {
         return sum + Math.max(0, item.data?.[0] || 0);
       }, 0);
     }
@@ -338,8 +386,8 @@ async function scrape() {
 
     // ── Build history.json ─────────────────────────────────
     const apiDays = {};
-    if (historyEnergy?.items?.length) {
-      for (const item of historyEnergy.items) {
+    if (historyEnergyFinal?.items?.length) {
+      for (const item of historyEnergyFinal.items) {
         const date = item.timestamp.split('T')[0];
         apiDays[date] = Math.max(0, Math.round(item.data?.[0] || 0));
       }
