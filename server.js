@@ -1,10 +1,21 @@
 /**
- * server.js — Consolidated CLN Community Solar Dashboard Server
+ * server.js — Multi-Site Community Solar Dashboard Server
  *
- * Serves the static dashboard AND runs the AlsoEnergy scraper
- * on a 15-minute interval. No GitHub Actions needed.
+ * Serves the dashboard AND runs the AlsoEnergy scraper on a 15-minute interval.
+ * All site-specific config comes from environment variables so the same codebase
+ * deploys for every site.
  *
- * Environment variables (set in Railway):
+ * Environment variables (set in Railway per service):
+ *   SITE_NAME             — Display name (e.g. "Locker 505")
+ *   SITE_SUBTITLE         — Subtitle line (e.g. "Community Solar · Rio Rancho, New Mexico")
+ *   SITE_CITY             — City for weather display
+ *   ALSO_ENERGY_SITE_ID   — AlsoEnergy site ID
+ *   ALSO_ENERGY_METER_ID  — AlsoEnergy hardware/meter ID (for live kW)
+ *   PV_SIZE_AC            — System AC capacity in kW (e.g. 5000)
+ *   PV_SIZE_DC            — System DC capacity in kW (e.g. 7003)
+ *   SITE_LAT              — Latitude
+ *   SITE_LON              — Longitude
+ *   SITE_TIMEZONE         — IANA timezone (default: America/Denver)
  *   ALSO_ENERGY_USERNAME  — AlsoEnergy account email
  *   ALSO_ENERGY_PASSWORD  — AlsoEnergy account password
  *   ANTHROPIC_API_KEY     — (optional) for AI-generated solar facts
@@ -20,20 +31,20 @@ const app = express();
 const PORT = process.env.PORT || 8080;
 const PUBLIC = path.join(__dirname, 'public');
 
-// Serve static files
-app.use(express.static(PUBLIC));
-app.get('*', (req, res) => res.sendFile(path.join(PUBLIC, 'index.html')));
-
 // ═══════════════════════════════════════════════════════════════
-// SCRAPER — AlsoEnergy API
+// SITE CONFIG — all from env vars
 // ═══════════════════════════════════════════════════════════════
 
-const SITE_ID = 72296;
-const METER_ID = 570224;
-const PV_SIZE_AC = 4975;
-const PV_SIZE_DC = 6499;
-const LAT = 34.6612;
-const LON = -106.7747;
+const SITE_NAME     = process.env.SITE_NAME || 'Community Solar';
+const SITE_SUBTITLE = process.env.SITE_SUBTITLE || 'Community Solar · New Mexico';
+const SITE_CITY     = process.env.SITE_CITY || 'New Mexico';
+const SITE_ID       = parseInt(process.env.ALSO_ENERGY_SITE_ID || '0');
+const METER_ID      = parseInt(process.env.ALSO_ENERGY_METER_ID || '0');
+const PV_SIZE_AC    = parseInt(process.env.PV_SIZE_AC || '5000');
+const PV_SIZE_DC    = parseInt(process.env.PV_SIZE_DC || '5000');
+const LAT           = parseFloat(process.env.SITE_LAT || '34.5');
+const LON           = parseFloat(process.env.SITE_LON || '-106.5');
+const TIMEZONE      = process.env.SITE_TIMEZONE || 'America/Denver';
 
 const USERNAME = process.env.ALSO_ENERGY_USERNAME;
 const PASSWORD = process.env.ALSO_ENERGY_PASSWORD;
@@ -42,7 +53,47 @@ const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const SCRAPE_INTERVAL = 15 * 60 * 1000;  // 15 minutes
 const FACTS_INTERVAL = 24 * 60 * 60 * 1000; // 24 hours
 
-// ── HTTP helper ──────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// SERVE DASHBOARD — inject site config into HTML
+// ═══════════════════════════════════════════════════════════════
+
+// Read index.html template once at startup
+let htmlTemplate = '';
+try {
+  htmlTemplate = fs.readFileSync(path.join(PUBLIC, 'index.html'), 'utf8');
+} catch (e) {
+  console.error('Could not read index.html:', e.message);
+}
+
+// Serve static assets (css, js, images, json) normally
+app.use(express.static(PUBLIC, { index: false }));
+
+// Inject site config into HTML for all page requests
+app.get('*', (req, res) => {
+  // Don't inject into data/json/asset requests
+  if (req.path.match(/\.(json|js|css|png|jpg|ico|svg|woff|woff2|ttf)$/)) {
+    return res.sendFile(path.join(PUBLIC, req.path));
+  }
+  // Inject site config as a script tag before </head>
+  const configScript = `<script>
+window.__SITE_CONFIG__ = {
+  name: ${JSON.stringify(SITE_NAME)},
+  subtitle: ${JSON.stringify(SITE_SUBTITLE)},
+  city: ${JSON.stringify(SITE_CITY)},
+  pvSizeAC: ${PV_SIZE_AC},
+  pvSizeDC: ${PV_SIZE_DC},
+  lat: ${LAT},
+  lon: ${LON}
+};
+</script>`;
+  const html = htmlTemplate.replace('</head>', configScript + '\n</head>');
+  res.type('html').send(html);
+});
+
+// ═══════════════════════════════════════════════════════════════
+// HTTP HELPER
+// ═══════════════════════════════════════════════════════════════
+
 function req(method, url, headers = {}, body = null) {
   return new Promise((resolve, reject) => {
     const u = new URL(url);
@@ -72,7 +123,10 @@ function req(method, url, headers = {}, body = null) {
   });
 }
 
-// ── AlsoEnergy auth ──────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// ALSOENERGY AUTH + API
+// ═══════════════════════════════════════════════════════════════
+
 async function getToken() {
   const body = `grant_type=password&username=${encodeURIComponent(USERNAME)}&password=${encodeURIComponent(PASSWORD)}`;
   const res = await req('POST', 'https://api.alsoenergy.com/Auth/token', {
@@ -92,9 +146,12 @@ function binData(token, from, to, binSize, fields) {
   return api(token, 'POST', `/Data/BinData?${qs}`, fields);
 }
 
-// ── Date helpers (Mountain Time) ─────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// DATE HELPERS
+// ═══════════════════════════════════════════════════════════════
+
 function mtnNow() {
-  return new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Denver' }));
+  return new Date(new Date().toLocaleString('en-US', { timeZone: TIMEZONE }));
 }
 function fmtLocal(d) {
   const pad = n => String(n).padStart(2, '0');
@@ -103,11 +160,14 @@ function fmtLocal(d) {
 function fmtDate(d) { return fmtLocal(d).split('T')[0]; }
 function addDays(d, n) { const r = new Date(d); r.setDate(r.getDate() + n); return r; }
 
-// ── Sunrise / Sunset ─────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// SUNRISE / SUNSET
+// ═══════════════════════════════════════════════════════════════
+
 async function getSunTimes() {
   try {
     const d = await req('GET',
-      `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&daily=sunrise,sunset&timezone=America%2FDenver&forecast_days=1`);
+      `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&daily=sunrise,sunset&timezone=${encodeURIComponent(TIMEZONE)}&forecast_days=1`);
     const rise = d.daily?.sunrise?.[0];
     const set = d.daily?.sunset?.[0];
     const fmtTime = iso => {
@@ -142,13 +202,20 @@ function fmtEnergy(kwh) {
   return { value: Math.round(kwh).toString(), unit: 'kWh' };
 }
 
-// ── Main Scrape Function ─────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// MAIN SCRAPE FUNCTION
+// ═══════════════════════════════════════════════════════════════
+
 async function scrape() {
   if (!USERNAME || !PASSWORD) {
     console.warn('Missing ALSO_ENERGY credentials — skipping scrape');
     return;
   }
-  console.log(`[${new Date().toISOString()}] Scraping AlsoEnergy API...`);
+  if (!SITE_ID) {
+    console.warn('Missing ALSO_ENERGY_SITE_ID — skipping scrape');
+    return;
+  }
+  console.log(`[${new Date().toISOString()}] Scraping ${SITE_NAME} (site ${SITE_ID})...`);
   try {
     const token = await getToken();
     const now = mtnNow();
@@ -159,11 +226,16 @@ async function scrape() {
     const yesterdayEnd = fmtDate(now) + 'T00:00:00';
     const thirtyDaysAgo = addDays(now, -30);
 
+    // Build currentPower query — use meter ID if available, else skip live kW
+    const currentPowerQuery = METER_ID
+      ? binData(token, fmtLocal(addDays(now, 0)).replace(/T.*/, 'T' + String(now.getHours()).padStart(2, '0') + ':00:00'),
+          nowLocal, 'Bin15Min',
+          [{ hardwareId: METER_ID, fieldName: 'KW', function: 'Avg' }])
+          .catch(e => { console.error('currentPower:', e.message); return null; })
+      : Promise.resolve(null);
+
     const [currentPower, todayEnergy, yesterdayEnergy, historyEnergy, weather, sunTimes] = await Promise.all([
-      binData(token, fmtLocal(addDays(now, 0)).replace(/T.*/, 'T' + String(now.getHours()).padStart(2, '0') + ':00:00'),
-        nowLocal, 'Bin15Min',
-        [{ hardwareId: METER_ID, fieldName: 'KW', function: 'Avg' }])
-        .catch(e => { console.error('currentPower:', e.message); return null; }),
+      currentPowerQuery,
       binData(token, todayStart, nowLocal, 'BinDay',
         [{ siteId: SITE_ID, fieldName: 'ProdKWH', function: 'Diff' }])
         .catch(e => { console.error('todayEnergy:', e.message); return null; }),
@@ -265,7 +337,6 @@ async function scrape() {
     }));
 
     // ── Build history.json ─────────────────────────────────
-    // Build a lookup from API results, then fill all 30 calendar days
     const apiDays = {};
     if (historyEnergy?.items?.length) {
       for (const item of historyEnergy.items) {
@@ -273,7 +344,6 @@ async function scrape() {
         apiDays[date] = Math.max(0, Math.round(item.data?.[0] || 0));
       }
     }
-    // Generate every date from 30 days ago to yesterday
     const history = [];
     for (let i = 30; i >= 1; i--) {
       const d = addDays(now, -i);
@@ -306,7 +376,7 @@ async function generateFacts() {
   }
   console.log(`[${new Date().toISOString()}] Generating fresh solar facts...`);
   try {
-    const prompt = `Generate exactly 30 interesting, educational facts about solar energy, community solar programs, and renewable energy. These will be displayed one at a time on a public kiosk dashboard for a community solar project in Belen, New Mexico (operated by Affordable Solar Group).
+    const prompt = `Generate exactly 30 interesting, educational facts about solar energy, community solar programs, and renewable energy. These will be displayed one at a time on a public kiosk dashboard for the ${SITE_NAME} community solar project in ${SITE_CITY} (operated by Affordable Solar Group).
 
 Requirements:
 - Each fact must be a single sentence, suitable for display in a bottom ticker bar
@@ -366,16 +436,16 @@ Return ONLY a valid JSON array of strings, no markdown, no explanation.`;
 // ═══════════════════════════════════════════════════════════════
 
 app.listen(PORT, () => {
-  console.log(`CLN Dashboard serving on port ${PORT}`);
+  console.log(`${SITE_NAME} Dashboard serving on port ${PORT}`);
+  console.log(`Site ID: ${SITE_ID} | Meter ID: ${METER_ID || 'NOT SET'} | AC: ${PV_SIZE_AC} kW | DC: ${PV_SIZE_DC} kW`);
+  console.log(`Location: ${LAT}, ${LON} (${TIMEZONE})`);
   console.log(`Scraper interval: ${SCRAPE_INTERVAL / 60000} min`);
   console.log(`Credentials: ${USERNAME ? 'set' : 'MISSING'}`);
   console.log(`Anthropic key: ${ANTHROPIC_API_KEY ? 'set' : 'not set (facts will use fallback)'}`);
 
-  // Run immediately on startup, then on interval
   scrape();
   setInterval(scrape, SCRAPE_INTERVAL);
 
-  // Generate facts on startup (if key set), then daily
   generateFacts();
   setInterval(generateFacts, FACTS_INTERVAL);
 });

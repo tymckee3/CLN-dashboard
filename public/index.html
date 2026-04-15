@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cuidando Los Niños · Solar</title>
+<title>Community Solar Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@200;300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
@@ -148,8 +148,8 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;back
     <line x1="41" y1="25" x2="47" y2="25" stroke="rgba(237,241,255,.3)" stroke-width="2" stroke-linecap="round"/>
   </svg>
   <img src="/logo.png" alt="Affordable Solar" style="height:72px;opacity:0.8;margin-bottom:12px;">
-  <div class="n-ttl">Cuidando Los Niños Community Solar</div>
-  <div class="n-sub">Resting Until Sunrise · Belen, New Mexico</div>
+  <div class="n-ttl" id="nightTitle">Community Solar</div>
+  <div class="n-sub" id="nightSub">Resting Until Sunrise</div>
   <div id="nightStats" style="display:flex;gap:64px;margin-top:30px;"></div>
   <div class="n-cd-msg">Back online in</div>
   <div class="n-countdown" id="nightCountdown">
@@ -175,8 +175,8 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;back
       <line x1="8" y1="24" x2="5" y2="27" stroke="#EDAA1E" stroke-width="1.5" stroke-linecap="round" opacity=".4"/>
     </svg>
     <div>
-      <div class="h-name">Cuidando Los Niños Community Solar</div>
-      <div class="h-sub">Provided by <img src="/logo.png" alt="Affordable Solar" style="height:15px;vertical-align:middle;opacity:0.6;margin:0 4px;"> · Belen, New Mexico</div>
+      <div class="h-name" id="hdrName">Community Solar</div>
+      <div class="h-sub" id="hdrSub">Provided by <img src="/logo.png" alt="Affordable Solar" style="height:15px;vertical-align:middle;opacity:0.6;margin:0 4px;"></div>
     </div>
   </div>
   <div class="hdr-r">
@@ -269,12 +269,22 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;back
     <div class="si-div"></div>
     <div class="si"><div class="si-lbl">Today's Offset</div><div class="si-row"><span class="si-n au" id="offN">—</span><span class="si-u" id="offU">&nbsp;lbs CO₂</span></div><div class="si-s" id="offS"></div></div>
     <div class="si-div"></div>
-    <div class="si"><div class="si-lbl">System</div><div class="si-row"><span class="si-n">4,975</span><span class="si-u">&nbsp;kW AC</span></div><div class="si-s">6,499 kW DC · 20 Inverters</div></div>
+    <div class="si"><div class="si-lbl">System</div><div class="si-row"><span class="si-n" id="sysAC">—</span><span class="si-u">&nbsp;kW AC</span></div><div class="si-s" id="sysDC">—</div></div>
   </div>
 </div>
 <div class="btm"><div class="bt-tag">Solar insight</div><div class="bt-msg" id="btmEl">Loading...</div></div>
 </div>
 <script>
+// ── SITE CONFIG (injected by server.js, fallback for local dev) ──
+const CFG=window.__SITE_CONFIG__||{name:'Cuidando Los Niños Community Solar',subtitle:'Community Solar · Belen, New Mexico',city:'Belen, New Mexico',pvSizeAC:4975,pvSizeDC:6499,lat:34.6612,lon:-106.7747};
+// Apply config to DOM
+document.getElementById('hdrName').textContent=CFG.name;
+document.getElementById('hdrSub').innerHTML='Provided by <img src="/logo.png" alt="Affordable Solar" style="height:15px;vertical-align:middle;opacity:0.6;margin:0 4px;"> · '+CFG.subtitle;
+document.getElementById('nightTitle').textContent=CFG.name;
+document.getElementById('nightSub').textContent='Resting Until Sunrise · '+CFG.city;
+document.getElementById('sysAC').textContent=CFG.pvSizeAC.toLocaleString();
+document.getElementById('sysDC').textContent=CFG.pvSizeDC.toLocaleString()+' kW DC';
+document.title=CFG.name+' · Solar';
 function toKwh(v,u){if(!v||v==='—')return 0;const n=parseFloat(String(v).replace(',',''));return u==='GWh'?n*1e6:u==='MWh'?n*1e3:n;}
 function homes(k){return k<=0?0:Math.max(1,Math.round(k/30));}
 function $(i){return document.getElementById(i);}
@@ -342,7 +352,7 @@ function makeIrrForecast(labels,vals){
 let wxCache={irr:0,cloud:0,elev:40};
 async function fetchWx(){
   try{
-    const r=await fetch('https://api.open-meteo.com/v1/forecast?latitude=34.6612&longitude=-106.7747&current=shortwave_radiation&daily=shortwave_radiation_sum&timezone=America%2FDenver&forecast_days=7');
+    const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${CFG.lat}&longitude=${CFG.lon}&current=shortwave_radiation&daily=shortwave_radiation_sum&timezone=America%2FDenver&forecast_days=7`);
     const d=await r.json();
     wxCache.irr=Math.round(d.current?.shortwave_radiation||0);
     if(d.daily){
@@ -548,10 +558,10 @@ function startInterpolation(){
     displayKW*=1+(Math.random()-0.5)*0.006;
 
     // Clamp: never negative, never above system capacity
-    displayKW=Math.max(0,Math.min(4975,displayKW));
+    displayKW=Math.max(0,Math.min(CFG.pvSizeAC,displayKW));
 
     $('kwEl').textContent=displayKW.toFixed(1);
-    const cp=Math.min(1,displayKW/4975);setRing(cp);
+    const cp=Math.min(1,displayKW/CFG.pvSizeAC);setRing(cp);
     $('capEl').textContent=(cp*100).toFixed(1)+'% capacity';
     if(displayKW>0)$('homesEl').textContent='≈ '+homes(displayKW*0.5).toLocaleString()+' homes';
   },30000); // every 30 seconds
@@ -589,7 +599,7 @@ async function fetchData(){
         if(!displayKW||displayKW<=0)displayKW=fallback;
         lastFetchTime=d.lastGoodKWTime?new Date(d.lastGoodKWTime).getTime():Date.now();
         $('kwEl').textContent=displayKW.toFixed(1);
-        const cp=Math.min(1,displayKW/4975);setRing(cp);
+        const cp=Math.min(1,displayKW/CFG.pvSizeAC);setRing(cp);
         $('capEl').textContent=(cp*100).toFixed(1)+'% capacity';
         $('homesEl').textContent=displayKW>0?'≈ '+homes(displayKW*0.5).toLocaleString()+' homes':'';
         console.log('API dropout — using last good kW:',fallback);
@@ -601,7 +611,7 @@ async function fetchData(){
       if(oldKW>0&&kw>0&&Math.abs(oldKW-kw)>0.5){
         animateValue($('kwEl'),oldKW,kw,2200,v=>v.toFixed(1));
       }else{$('kwEl').textContent=kw>0?kw.toFixed(1):'—';}
-      const cp=Math.min(1,kw/4975);setRing(cp);
+      const cp=Math.min(1,kw/CFG.pvSizeAC);setRing(cp);
       $('capEl').textContent=(cp*100).toFixed(1)+'% capacity';
       $('homesEl').textContent=kw>0?'≈ '+homes(kw*0.5).toLocaleString()+' homes':'';
     }
