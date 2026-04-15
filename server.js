@@ -234,68 +234,40 @@ async function scrape() {
           .catch(e => { console.error('currentPower:', e.message); return null; })
       : Promise.resolve(null);
 
-    // Energy query fields — try site-level first, fall back to meter-level
-    const siteEnergyField = [{ siteId: SITE_ID, fieldName: 'ProdKWH', function: 'Diff' }];
-    const meterEnergyField = METER_ID
-      ? [{ hardwareId: METER_ID, fieldName: 'KWH', function: 'Diff' }]
-      : siteEnergyField;
+    // Energy: use meter KW at 15-min resolution, sum to get kWh
+    // (site-level ProdKWH and meter-level KWH fields are empty on these meters)
+    const kwField = METER_ID
+      ? [{ hardwareId: METER_ID, fieldName: 'KW', function: 'Avg' }]
+      : [{ siteId: SITE_ID, fieldName: 'KW', function: 'Avg' }];
 
-    const [currentPower, todayEnergy, yesterdayEnergy, historyEnergy, weather, sunTimes] = await Promise.all([
+    const [currentPower, todayKWBins, yesterdayKWBins, historyKWBins, weather, sunTimes] = await Promise.all([
       currentPowerQuery,
-      binData(token, todayStart, nowLocal, 'BinDay', siteEnergyField)
+      binData(token, todayStart, nowLocal, 'Bin15Min', kwField)
         .catch(e => { console.error('todayEnergy:', e.message); return null; }),
-      binData(token, yesterdayStart, yesterdayEnd, 'BinDay', siteEnergyField)
+      binData(token, yesterdayStart, yesterdayEnd, 'Bin15Min', kwField)
         .catch(e => { console.error('yesterdayEnergy:', e.message); return null; }),
-      binData(token, fmtDate(thirtyDaysAgo) + 'T00:00:00', yesterdayEnd, 'BinDay', siteEnergyField)
+      binData(token, fmtDate(thirtyDaysAgo) + 'T00:00:00', yesterdayEnd, 'BinDay', kwField)
         .catch(e => { console.error('historyEnergy:', e.message); return null; }),
       api(token, 'GET', `/Sites/${SITE_ID}/Weather`)
         .catch(e => { console.error('weather:', e.message); return null; }),
       getSunTimes()
     ]);
 
-    // ── Check if site-level energy returned data; if not, retry with meter-level ──
-    const siteEnergyEmpty = !historyEnergy?.items?.length ||
-      historyEnergy.items.every(i => i.data?.[0] == null || i.data[0] === 0);
-
-    let todayEnergyFinal = todayEnergy;
-    let yesterdayEnergyFinal = yesterdayEnergy;
-    let historyEnergyFinal = historyEnergy;
-
-    if (siteEnergyEmpty && METER_ID) {
-      console.log('  Site-level ProdKWH empty — retrying with meter-level KWH...');
-      const [mToday, mYesterday, mHistory] = await Promise.all([
-        binData(token, todayStart, nowLocal, 'BinDay', meterEnergyField)
-          .catch(e => { console.error('meter todayEnergy:', e.message); return null; }),
-        binData(token, yesterdayStart, yesterdayEnd, 'BinDay', meterEnergyField)
-          .catch(e => { console.error('meter yesterdayEnergy:', e.message); return null; }),
-        binData(token, fmtDate(thirtyDaysAgo) + 'T00:00:00', yesterdayEnd, 'BinDay', meterEnergyField)
-          .catch(e => { console.error('meter historyEnergy:', e.message); return null; }),
-      ]);
-      if (mHistory?.items?.length) {
-        console.log('  Meter-level KWH returned data — using meter queries.');
-        todayEnergyFinal = mToday;
-        yesterdayEnergyFinal = mYesterday;
-        historyEnergyFinal = mHistory;
-      } else {
-        console.log('  Meter-level KWH also empty — trying meter ProdKWH...');
-        const [pToday, pYesterday, pHistory] = await Promise.all([
-          binData(token, todayStart, nowLocal, 'BinDay',
-            [{ hardwareId: METER_ID, fieldName: 'ProdKWH', function: 'Diff' }])
-            .catch(e => null),
-          binData(token, yesterdayStart, yesterdayEnd, 'BinDay',
-            [{ hardwareId: METER_ID, fieldName: 'ProdKWH', function: 'Diff' }])
-            .catch(e => null),
-          binData(token, fmtDate(thirtyDaysAgo) + 'T00:00:00', yesterdayEnd, 'BinDay',
-            [{ hardwareId: METER_ID, fieldName: 'ProdKWH', function: 'Diff' }])
-            .catch(e => null),
-        ]);
-        if (pHistory?.items?.length) {
-          console.log('  Meter-level ProdKWH returned data.');
-          todayEnergyFinal = pToday;
-          yesterdayEnergyFinal = pYesterday;
-          historyEnergyFinal = pHistory;
-        }
-      }
+    // Helper: sum 15-min KW bins into kWh (each bin = 0.25 hours)
+    function sumKWhFrom15MinBins(bins) {
+      if (!bins?.items?.length) return 0;
+      return bins.items.reduce((sum, item) => {
+        const kw = item.data?.[0];
+        return sum + (kw != null && kw > 0 ? kw * 0.25 : 0);
+      }, 0);
+    }
+    // Helper: sum daily KW avg bins into kWh (each bin ≈ 24 hours)
+    function sumKWhFromDayBins(bins) {
+      if (!bins?.items?.length) return 0;
+      return bins.items.reduce((sum, item) => {
+        const kw = item.data?.[0];
+        return sum + (kw != null && kw > 0 ? kw * 24 : 0);
+      }, 0);
     }
 
     // ── Parse current kW ───────────────────────────────────
@@ -320,21 +292,10 @@ async function scrape() {
       }
     }
 
-    // ── Parse energy totals ────────────────────────────────
-    let todayKWh = 0;
-    if (todayEnergyFinal?.items?.[0]?.data?.[0] != null)
-      todayKWh = Math.max(0, Math.round(todayEnergyFinal.items[0].data[0]));
-
-    let yesterdayKWh = 0;
-    if (yesterdayEnergyFinal?.items?.[0]?.data?.[0] != null)
-      yesterdayKWh = Math.max(0, Math.round(yesterdayEnergyFinal.items[0].data[0]));
-
-    let last30DaysKWh = 0;
-    if (historyEnergyFinal?.items?.length) {
-      last30DaysKWh = historyEnergyFinal.items.reduce((sum, item) => {
-        return sum + Math.max(0, item.data?.[0] || 0);
-      }, 0);
-    }
+    // ── Parse energy totals (from KW bins → kWh) ───────────
+    let todayKWh = Math.round(sumKWhFrom15MinBins(todayKWBins));
+    let yesterdayKWh = Math.round(sumKWhFrom15MinBins(yesterdayKWBins));
+    let last30DaysKWh = Math.round(sumKWhFromDayBins(historyKWBins));
 
     let co2Tons30d = Math.round(last30DaysKWh * 0.000386 * 10) / 10;
 
@@ -386,10 +347,11 @@ async function scrape() {
 
     // ── Build history.json ─────────────────────────────────
     const apiDays = {};
-    if (historyEnergyFinal?.items?.length) {
-      for (const item of historyEnergyFinal.items) {
+    if (historyKWBins?.items?.length) {
+      for (const item of historyKWBins.items) {
         const date = item.timestamp.split('T')[0];
-        apiDays[date] = Math.max(0, Math.round(item.data?.[0] || 0));
+        const avgKW = item.data?.[0] || 0;
+        apiDays[date] = Math.max(0, Math.round(avgKW * 24));  // avg kW × 24h = kWh
       }
     }
     const history = [];
