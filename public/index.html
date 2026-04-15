@@ -51,7 +51,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;back
 .ring-wrap svg{width:100%;height:100%;transform:rotate(-90deg);}
 .ring-glow{position:absolute;inset:-24%;border-radius:50%;background:radial-gradient(circle,rgba(237,170,30,0.15) 0%,transparent 62%);animation:glowBreathe 4s ease-in-out infinite;}
 .ring-inner{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
-.r-kw{font-family:'Bebas Neue',sans-serif;font-size:clamp(4rem,9.5vw,8rem);color:var(--gold);line-height:1;letter-spacing:.02em;text-shadow:0 0 60px rgba(237,170,30,.55),0 1px 3px rgba(0,0,0,.6);animation:numBreathe 4s ease-in-out infinite;}
+.r-kw{font-family:'Bebas Neue',sans-serif;font-size:clamp(3rem,8vw,7rem);color:var(--gold);line-height:1;letter-spacing:.02em;text-shadow:0 0 60px rgba(237,170,30,.55),0 1px 3px rgba(0,0,0,.6);animation:numBreathe 4s ease-in-out infinite;}
 .r-unit{font-family:'Bebas Neue',sans-serif;font-size:clamp(1.4rem,2.8vw,2.4rem);color:rgba(237,170,30,.55);letter-spacing:.08em;margin-top:-4px;}
 .r-cap{font-size:clamp(.8rem,1.4vw,1.1rem);font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);margin-top:6px;}
 .r-homes{font-size:clamp(.85rem,1.5vw,1.15rem);font-weight:600;color:var(--gold);opacity:.85;margin-top:4px;}
@@ -287,6 +287,7 @@ document.getElementById('sysAC').textContent=CFG.pvSizeAC.toLocaleString();
 document.getElementById('sysDC').textContent=CFG.pvSizeDC.toLocaleString()+' kW DC';
 document.title=CFG.name+' · Solar';
 function toKwh(v,u){if(!v||v==='—')return 0;const n=parseFloat(String(v).replace(',',''));return u==='GWh'?n*1e6:u==='MWh'?n*1e3:n;}
+function scaleKW(el,val){const len=String(val).length;el.style.fontSize=len>=6?'clamp(2.2rem,5.5vw,4.5rem)':len>=5?'clamp(2.5rem,6.5vw,5.5rem)':'';}
 function homes(k){return k<=0?0:Math.max(1,Math.round(k/30));}
 function $(i){return document.getElementById(i);}
 function tick(){const n=new Date();$('clkEl').textContent=n.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});$('dayEl').textContent=n.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});}
@@ -561,7 +562,7 @@ function startInterpolation(){
     // Clamp: never negative, never above system capacity
     displayKW=Math.max(0,Math.min(CFG.pvSizeAC,displayKW));
 
-    $('kwEl').textContent=displayKW.toFixed(1);
+    $('kwEl').textContent=displayKW.toFixed(1);scaleKW($('kwEl'),displayKW.toFixed(1));
     const cp=Math.min(1,displayKW/CFG.pvSizeAC);setRing(cp);
     $('capEl').textContent=(cp*100).toFixed(1)+'% capacity';
     if(displayKW>0)$('homesEl').textContent='≈ '+homes(displayKW*0.5).toLocaleString()+' homes';
@@ -611,7 +612,7 @@ async function fetchData(){
       lastKW=kw;displayKW=kw;
       if(oldKW>0&&kw>0&&Math.abs(oldKW-kw)>0.5){
         animateValue($('kwEl'),oldKW,kw,2200,v=>v.toFixed(1));
-      }else{$('kwEl').textContent=kw>0?kw.toFixed(1):'—';}
+      }else{$('kwEl').textContent=kw>0?kw.toFixed(1):'—';scaleKW($('kwEl'),kw>0?kw.toFixed(1):'—');}
       const cp=Math.min(1,kw/CFG.pvSizeAC);setRing(cp);
       $('capEl').textContent=(cp*100).toFixed(1)+'% capacity';
       $('homesEl').textContent=kw>0?'≈ '+homes(kw*0.5).toLocaleString()+' homes':'';
