@@ -53,6 +53,9 @@ const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const SCRAPE_INTERVAL = 15 * 60 * 1000;  // 15 minutes
 const FACTS_INTERVAL = 24 * 60 * 60 * 1000; // 24 hours
 
+// Timestamp of the most recent successful scrape (for /health).
+let lastScrapeAt = null;
+
 // ═══════════════════════════════════════════════════════════════
 // SERVE DASHBOARD — inject site config into HTML
 // ═══════════════════════════════════════════════════════════════
@@ -65,16 +68,13 @@ try {
   console.error('Could not read index.html:', e.message);
 }
 
-// Serve static assets (css, js, images, json) normally
-app.use(express.static(PUBLIC, { index: false }));
-
-// Inject site config into HTML for all page requests
-app.get('*', (req, res) => {
-  // Don't inject into data/json/asset requests
-  if (req.path.match(/\.(json|js|css|png|jpg|ico|svg|woff|woff2|ttf)$/)) {
-    return res.sendFile(path.join(PUBLIC, req.path));
+// Render the dashboard HTML with site config injected before </head>.
+function renderDashboard() {
+  if (!htmlTemplate) {
+    return '<!doctype html><meta charset="utf-8"><title>Dashboard error</title>'
+      + '<body style="font:16px sans-serif;padding:40px;background:#030609;color:#EDF1FF">'
+      + 'Dashboard template unavailable — check server logs.</body>';
   }
-  // Inject site config as a script tag before </head>
   const configScript = `<script>
 window.__SITE_CONFIG__ = {
   name: ${JSON.stringify(SITE_NAME)},
@@ -83,11 +83,30 @@ window.__SITE_CONFIG__ = {
   pvSizeAC: ${PV_SIZE_AC},
   pvSizeDC: ${PV_SIZE_DC},
   lat: ${LAT},
-  lon: ${LON}
+  lon: ${LON},
+  timezone: ${JSON.stringify(TIMEZONE)}
 };
 </script>`;
-  const html = htmlTemplate.replace('</head>', configScript + '\n</head>');
-  res.type('html').send(html);
+  return htmlTemplate.replace('</head>', configScript + '\n</head>');
+}
+
+// Dashboard entry points — must run BEFORE express.static so index.html is
+// never served raw (which would skip config injection).
+app.get(['/', '/index.html'], (_req, res) => {
+  res.type('html').send(renderDashboard());
+});
+
+// Lightweight health check for Railway / uptime monitors.
+app.get('/health', (_req, res) => {
+  res.json({ ok: true, site: SITE_NAME, scrapedAt: lastScrapeAt });
+});
+
+// Serve static assets (css, js, images, json) for everything else.
+app.use(express.static(PUBLIC, { index: false }));
+
+// Anything that falls through gets the dashboard as a SPA-style fallback.
+app.get('*', (_req, res) => {
+  res.type('html').send(renderDashboard());
 });
 
 // ═══════════════════════════════════════════════════════════════
@@ -164,23 +183,35 @@ function addDays(d, n) { const r = new Date(d); r.setDate(r.getDate() + n); retu
 // SUNRISE / SUNSET
 // ═══════════════════════════════════════════════════════════════
 
+// Return the current timezone abbreviation (e.g. "MDT", "MST") for TIMEZONE.
+// Avoids hardcoding "MDT" which is wrong in winter.
+function tzAbbr() {
+  try {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: TIMEZONE, timeZoneName: 'short'
+    }).formatToParts(new Date());
+    return parts.find(p => p.type === 'timeZoneName')?.value || '';
+  } catch { return ''; }
+}
+
 async function getSunTimes() {
   try {
     const d = await req('GET',
       `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&daily=sunrise,sunset&timezone=${encodeURIComponent(TIMEZONE)}&forecast_days=1`);
     const rise = d.daily?.sunrise?.[0];
     const set = d.daily?.sunset?.[0];
+    const abbr = tzAbbr();
     const fmtTime = iso => {
       const dt = new Date(iso);
       let h = dt.getHours(), m = dt.getMinutes();
       const ap = h >= 12 ? 'PM' : 'AM';
       if (h > 12) h -= 12; if (h === 0) h = 12;
-      return `${h}:${String(m).padStart(2, '0')} ${ap} MDT`;
+      return `${h}:${String(m).padStart(2, '0')} ${ap}${abbr ? ' ' + abbr : ''}`;
     };
     return { sunrise: fmtTime(rise), sunset: fmtTime(set) };
   } catch (e) {
     console.error('Sun times failed:', e.message);
-    return { sunrise: '6:57 AM MDT', sunset: '7:24 PM MDT' };
+    return { sunrise: null, sunset: null };
   }
 }
 
@@ -226,16 +257,21 @@ async function scrape() {
     const yesterdayEnd = fmtDate(now) + 'T00:00:00';
     const thirtyDaysAgo = addDays(now, -30);
 
-    // Build currentPower query — use meter ID if available, else skip live kW
+    // Live kW: query the last hour of 15-min bins and use the most recent
+    // non-null positive reading. One hour gives 3–4 bins to fall back through.
+    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
     const currentPowerQuery = METER_ID
-      ? binData(token, fmtLocal(addDays(now, 0)).replace(/T.*/, 'T' + String(now.getHours()).padStart(2, '0') + ':00:00'),
-          nowLocal, 'Bin15Min',
+      ? binData(token, fmtLocal(oneHourAgo), nowLocal, 'Bin15Min',
           [{ hardwareId: METER_ID, fieldName: 'KW', function: 'Avg' }])
           .catch(e => { console.error('currentPower:', e.message); return null; })
       : Promise.resolve(null);
 
-    // Energy: use meter KW at 15-min resolution, sum to get kWh
-    // (site-level ProdKWH and meter-level KWH fields are empty on these meters)
+    // Energy: AlsoEnergy's ProdKWH / KWH fields are empty on these meters, so
+    // we derive kWh from KW (Avg). The Avg function is TIME-WEIGHTED, so:
+    //   • 15-min bin avg × 0.25h = kWh in that bin
+    //   • daily bin avg × 24h    = kWh that day (nighttime 0-kW hours are
+    //     already baked into the 24-hour denominator, so multiplying by 24
+    //     recovers the true integral — this is not an overestimate)
     const kwField = METER_ID
       ? [{ hardwareId: METER_ID, fieldName: 'KW', function: 'Avg' }]
       : [{ siteId: SITE_ID, fieldName: 'KW', function: 'Avg' }];
@@ -297,7 +333,10 @@ async function scrape() {
     let yesterdayKWh = Math.round(sumKWhFrom15MinBins(yesterdayKWBins));
     let last30DaysKWh = Math.round(sumKWhFromDayBins(historyKWBins));
 
-    let co2Tons30d = Math.round(last30DaysKWh * 0.000386 * 10) / 10;
+    // EPA eGRID emissions factor: 0.851 lbs CO₂/kWh → 0.0004255 short-tons/kWh.
+    // Kept in sync with LBS_CO2_PER_KWH in public/index.html.
+    const CO2_TONS_PER_KWH = 0.851 / 2000;
+    let co2Tons30d = Math.round(last30DaysKWh * CO2_TONS_PER_KWH * 10) / 10;
 
     let weatherData = null;
     if (weather) {
@@ -369,6 +408,7 @@ async function scrape() {
     fs.writeFileSync(path.join(PUBLIC, 'history.json'), JSON.stringify(history, null, 2));
     console.log(`  history.json: ${history.length} days (${Object.keys(apiDays).length} with production)`);
 
+    lastScrapeAt = new Date().toISOString();
     console.log('  Scrape complete.');
   } catch (e) {
     console.error('Scrape failed:', e.message);

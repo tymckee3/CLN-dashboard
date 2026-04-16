@@ -248,8 +248,11 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;back
           <polyline id="arcBg" points="" stroke="rgba(237,241,255,0.07)" stroke-width="1.5" fill="none"/>
           <polyline id="arcP" points="" stroke="rgba(237,170,30,0.32)" stroke-width="2" fill="none"/>
           <polyline id="arcG" points="" stroke="rgba(237,170,30,0.6)" stroke-width="1" fill="none"/>
-          <circle id="sunH" cx="0" cy="44" r="6" fill="rgba(237,170,30,0.15)"/>
-          <circle id="sunD" cx="0" cy="44" r="3" fill="#EDAA1E" style="animation:arcGlow 3s ease-in-out infinite;"/>
+          <!-- Ellipses (not circles) because the parent SVG uses preserveAspectRatio="none",
+               which stretches shapes horizontally. rx is corrected to viewBox units at runtime
+               in fixSunDots() so both dots render as visually round circles. -->
+          <ellipse id="sunH" cx="0" cy="44" rx="6" ry="6" fill="rgba(237,170,30,0.15)"/>
+          <ellipse id="sunD" cx="0" cy="44" rx="3" ry="3" fill="#EDAA1E" style="animation:arcGlow 3s ease-in-out infinite;"/>
         </svg>
       </div>
     </div>
@@ -277,7 +280,9 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;back
 </div>
 <script>
 // ── SITE CONFIG (injected by server.js, fallback for local dev) ──
-const CFG=window.__SITE_CONFIG__||{name:'Cuidando Los Niños Community Solar',subtitle:'Community Solar · Belen, New Mexico',city:'Belen, New Mexico',pvSizeAC:4975,pvSizeDC:6499,lat:34.6612,lon:-106.7747};
+// Fallback is intentionally generic — the real site name, capacity, and
+// coordinates are always supplied by server.js from Railway env vars.
+const CFG=window.__SITE_CONFIG__||{name:'Community Solar',subtitle:'Community Solar · New Mexico',city:'New Mexico',pvSizeAC:5000,pvSizeDC:5000,lat:34.5,lon:-106.5,timezone:'America/Denver'};
 // Apply config to DOM
 document.getElementById('hdrName').textContent=CFG.name;
 document.getElementById('hdrSub').innerHTML='Provided by <img src="/logo.png" alt="Affordable Solar" style="height:15px;vertical-align:middle;opacity:0.6;margin:0 4px;"> · '+CFG.subtitle;
@@ -288,7 +293,14 @@ document.getElementById('sysDC').textContent=CFG.pvSizeDC.toLocaleString()+' kW 
 document.title=CFG.name+' · Solar';
 function toKwh(v,u){if(!v||v==='—')return 0;const n=parseFloat(String(v).replace(',',''));return u==='GWh'?n*1e6:u==='MWh'?n*1e3:n;}
 function scaleKW(el,val){const len=String(val).length;el.style.fontSize=len>=6?'clamp(2.2rem,5.5vw,4.5rem)':len>=5?'clamp(2.5rem,6.5vw,5.5rem)':'';}
-function homes(k){return k<=0?0:Math.max(1,Math.round(k/30));}
+// Homes-per-kWh-per-day: typical NM residential home uses ~30 kWh/day.
+const KWH_PER_HOME_DAY=30;
+// Homes-per-kW-instantaneous: typical daytime home draw ~2 kW.
+const KW_PER_HOME_LIVE=2;
+// EPA eGRID emissions factor: ~0.851 lbs CO₂ avoided per kWh of clean power.
+const LBS_CO2_PER_KWH=0.851;
+function homes(kwh){return kwh<=0?0:Math.max(1,Math.round(kwh/KWH_PER_HOME_DAY));}
+function homesLive(kw){return kw<=0?0:Math.max(1,Math.round(kw/KW_PER_HOME_LIVE));}
 function $(i){return document.getElementById(i);}
 function tick(){const n=new Date();$('clkEl').textContent=n.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});$('dayEl').textContent=n.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});}
 tick();setInterval(tick,1000);
@@ -323,6 +335,19 @@ function updateSun(){
   if(isNight&&!wasNight&&interpTimer){clearInterval(interpTimer);interpTimer=null;}
   if(!isNight&&wasNight)startInterpolation();
 }
+// Compensate for the arc SVG's preserveAspectRatio="none" stretching shapes
+// horizontally. We want the sun dots to render as visual circles (e.g. 3px or
+// 6px radius) regardless of container width. Compute rx/ry in viewBox units
+// from the rendered pixel size.
+function fixSunDots(){
+  const svg=$('sunD')?.ownerSVGElement;if(!svg)return;
+  const rect=svg.getBoundingClientRect();
+  if(!rect.width||!rect.height)return;
+  const xStretch=rect.width/900,yStretch=rect.height/50;
+  const apply=(el,rpx)=>{if(!el)return;el.setAttribute('rx',rpx/xStretch);el.setAttribute('ry',rpx/yStretch);};
+  apply($('sunD'),3);apply($('sunH'),6);
+}
+fixSunDots();window.addEventListener('resize',fixSunDots);
 updateSun();setInterval(updateSun,15000);
 function setRing(p){const c=527.8,o=c*(1-Math.min(1,p));$('ringFill').style.strokeDashoffset=o;$('ringGlow').style.strokeDashoffset=o;}
 Chart.defaults.color='rgba(237,241,255,0.38)';Chart.defaults.font.family='Inter';
@@ -382,7 +407,7 @@ function buildStories(d){
   const kw=parseFloat(d.currentKW)||0,tK=toKwh(d.todayKWh?.value,d.todayKWh?.unit),yK=toKwh(d.yesterdayKWh?.value,d.yesterdayKWh?.unit),l3=toKwh(d.last30Days?.value,d.last30Days?.unit),co2=parseFloat(d.co2OffsetTons30d)||0,nowH=new Date().getHours();
   const s=[];
   if(kw>0){
-    s.push({t:`Powering <span class="s-big">${homes(kw*0.5).toLocaleString()}</span> homes right now`});
+    s.push({t:`Powering <span class="s-big">${homesLive(kw).toLocaleString()}</span> homes right now`});
     s.push({t:`Equivalent to <span class="s-big">${Math.round(kw*10).toLocaleString()}</span> laptops running at once`});
     if(wxCache.cloud>50)s.push({t:`${wxCache.cloud}% cloud cover — output is reduced`});
     else if(nowH>=10&&nowH<=14)s.push({t:`Near daily peak — sun is high overhead`});
@@ -418,13 +443,13 @@ const fallbackFacts=[
   'Solar panels work on cloudy days too — they use <strong>diffuse light</strong>, not just direct sun',
   'The U.S. installed enough solar in 2024 to power <strong>over 30 million homes</strong>',
   'Solar reduces strain on the electric grid during <strong>peak demand hours</strong> when it\'s needed most',
-  'Belen, NM receives an average of <strong>6.5 peak sun hours</strong> per day — ideal for solar',
+  'New Mexico averages <strong>6–7 peak sun hours</strong> per day — ideal conditions for solar generation',
   'Community solar subscribers typically save <strong>10–20%</strong> on their electricity bills',
   'Solar panels are <strong>over 90% recyclable</strong> at end of life',
   'The sun produces enough energy in one second to power Earth for <strong>500,000 years</strong>',
   'New Mexico\'s Community Solar Act enables projects like this one to <strong>serve low-income households</strong>',
   'Solar installations in the U.S. have driven panel costs down <strong>over 70%</strong> since 2010',
-  'A 5 MW solar array like this one can offset the equivalent of <strong>driving 20 million miles</strong> per year',
+  'A community solar array like this one can offset the equivalent of <strong>millions of miles driven</strong> per year',
   'Solar energy requires <strong>zero water</strong> to generate electricity, unlike coal or natural gas plants',
 ];
 let facts=[...fallbackFacts],fi=0;
@@ -447,7 +472,7 @@ const omFacts=[
   'Sometimes a <strong>fuse</strong> needs replacing — fuses are tiny safety switches that protect the electrical system',
   'Solar panels are tough! They\'re built to survive <strong>hail, wind, and rain</strong> for 25+ years',
   'Birds and dust can block sunlight from reaching panels, so crews <strong>clean them</strong> a few times a year',
-  'A solar farm this size has <strong>20 inverters</strong> — they convert sunshine into the kind of electricity your home uses',
+  'A solar farm like this has many <strong>inverters</strong> — they convert sunshine into the kind of electricity your home uses',
   'When one part of a solar farm needs repair, the rest can <strong>keep making power</strong> — like a team!',
   'Maintenance crews use <strong>thermal cameras</strong> to find hot spots on panels that might need fixing',
   'Even when a solar farm is offline for maintenance, it produces <strong>zero pollution</strong> — unlike a gas plant idling',
@@ -510,11 +535,14 @@ function setOfflineState(offline){
 let lastKW=0, displayKW=0, interpTimer=null, lastFetchTime=0;
 function animateValue(el,from,to,duration,fmt){
   const start=performance.now();
+  const isKW=el.id==='kwEl';
   function step(now){
     const p=Math.min(1,(now-start)/duration);
     const ease=1-Math.pow(1-p,3); // ease-out cubic
     const v=from+(to-from)*ease;
     el.textContent=fmt?fmt(v):v.toFixed(1);
+    // Keep the kW gauge font-size in sync as digits grow/shrink.
+    if(isKW)scaleKW(el,el.textContent);
     if(p<1)requestAnimationFrame(step);
   }
   requestAnimationFrame(step);
@@ -565,7 +593,7 @@ function startInterpolation(){
     $('kwEl').textContent=displayKW.toFixed(1);scaleKW($('kwEl'),displayKW.toFixed(1));
     const cp=Math.min(1,displayKW/CFG.pvSizeAC);setRing(cp);
     $('capEl').textContent=(cp*100).toFixed(1)+'% capacity';
-    if(displayKW>0)$('homesEl').textContent='≈ '+homes(displayKW*0.5).toLocaleString()+' homes';
+    if(displayKW>0)$('homesEl').textContent='≈ '+homesLive(displayKW).toLocaleString()+' homes';
   },30000); // every 30 seconds
 }
 startInterpolation();
@@ -603,7 +631,7 @@ async function fetchData(){
         $('kwEl').textContent=displayKW.toFixed(1);
         const cp=Math.min(1,displayKW/CFG.pvSizeAC);setRing(cp);
         $('capEl').textContent=(cp*100).toFixed(1)+'% capacity';
-        $('homesEl').textContent=displayKW>0?'≈ '+homes(displayKW*0.5).toLocaleString()+' homes':'';
+        $('homesEl').textContent=displayKW>0?'≈ '+homesLive(displayKW).toLocaleString()+' homes':'';
         console.log('API dropout — using last good kW:',fallback);
       }
     }else{
@@ -615,20 +643,20 @@ async function fetchData(){
       }else{$('kwEl').textContent=kw>0?kw.toFixed(1):'—';scaleKW($('kwEl'),kw>0?kw.toFixed(1):'—');}
       const cp=Math.min(1,kw/CFG.pvSizeAC);setRing(cp);
       $('capEl').textContent=(cp*100).toFixed(1)+'% capacity';
-      $('homesEl').textContent=kw>0?'≈ '+homes(kw*0.5).toLocaleString()+' homes':'';
+      $('homesEl').textContent=kw>0?'≈ '+homesLive(kw).toLocaleString()+' homes':'';
     }
     const sp=(n,u,s,o,fn)=>{if(!o)return;$(n).textContent=o.value;$(u).textContent=o.unit;if(s){const k=toKwh(o.value,o.unit);$(s).textContent=k>0?fn(k):'';}};
     sp('tdN','tdU','tdS',d.todayKWh,k=>'≈ '+homes(k).toLocaleString()+' homes');
     sp('ydN','ydU','ydS',d.yesterdayKWh,k=>'≈ '+homes(k).toLocaleString()+' homes');
     sp('l3N','l3U','l3S',d.last30Days,k=>'≈ '+homes(k/30).toLocaleString()+' homes/day');
     if(d.co2OffsetTons30d){$('co2N').textContent=d.co2OffsetTons30d;$('co2S').textContent='= '+Math.round(parseFloat(d.co2OffsetTons30d)*48).toLocaleString()+' trees';}
-    // Today's CO₂ offset (EPA: 0.851 lbs CO₂ per kWh)
-    const todayOff=todayKwh*0.851;
+    // Today's CO₂ offset (see LBS_CO2_PER_KWH constant).
+    const todayOff=todayKwh*LBS_CO2_PER_KWH;
     if(todayOff>2000){$('offN').textContent=(todayOff/2000).toFixed(1);$('offU').textContent=' tons CO₂';}
     else{$('offN').textContent=todayOff>0?Math.round(todayOff).toLocaleString():'0';$('offU').textContent=' lbs CO₂';}
     $('offS').textContent=todayOff>0?'≈ '+Math.round(todayKwh*0.0436).toLocaleString()+' gallons of gas':'';
     nightStatsCache={yesterdayKWh:d.yesterdayKWh,co2OffsetTons30d:d.co2OffsetTons30d};updateNightStats();
-    if(d.sunrise&&d.sunset){const rH=parseTimeStr(d.sunrise),sH=parseTimeStr(d.sunset);if(rH&&sH){sunCache={rise:rH,set:sH,riseStr:d.sunrise.replace(/\s*(MDT|MST)\s*/g,'').trim(),setStr:d.sunset.replace(/\s*(MDT|MST)\s*/g,'').trim()};updateSun();}}
+    if(d.sunrise&&d.sunset){const rH=parseTimeStr(d.sunrise),sH=parseTimeStr(d.sunset);if(rH&&sH){const stripTz=s=>s.replace(/\s+[A-Z]{2,5}\s*$/,'').trim();sunCache={rise:rH,set:sH,riseStr:stripTz(d.sunrise),setStr:stripTz(d.sunset)};updateSun();}}
     if(d.sunElevation)wxCache.elev=d.sunElevation;
     if(d.weather)applyWeather(d.weather);
     if(hist.length>0){const rec=hist.slice(-7);const lbl=rec.map(h=>{const dt=new Date(h.date+'T12:00:00');return dt.toLocaleDateString('en-US',{weekday:'short',month:'numeric',day:'numeric'});});makeCombo(lbl,rec.map(h=>h.kwhProduced));}
