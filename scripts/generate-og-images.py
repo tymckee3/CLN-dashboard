@@ -33,7 +33,7 @@ BG       = (3, 6, 9)          # matches dashboard --bg
 GOLD     = (245, 179, 65)     # matches dashboard --gold
 WHITE    = (237, 241, 255)    # matches dashboard --ink
 MUTED    = (140, 150, 170)
-GRID     = (255, 210, 120, 18)
+GRID     = (255, 210, 120, 8)
 
 # Fonts — DejaVu is present on most Linux distros (used by Pillow's default
 # install path). Fall back to PIL default if missing.
@@ -103,14 +103,20 @@ def draw_background(img: Image.Image):
     glow = glow.filter(ImageFilter.GaussianBlur(50))
     img.alpha_composite(glow)
 
-    # Grid — subtle, evenly spaced.
+    # Grid — draw on its own transparent layer so the RGBA alpha in GRID
+    # is actually honored when we composite back (PIL's draw.line silently
+    # ignores alpha on 1-pixel-wide lines, which would leave full-opacity
+    # grid lines no matter what alpha we set).
+    grid_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    gdraw = ImageDraw.Draw(grid_layer)
     cols, rows = 12, 7
     for i in range(1, cols):
         x = int(W * i / cols)
-        draw.line([(x, 0), (x, H)], fill=GRID, width=1)
+        gdraw.line([(x, 0), (x, H)], fill=GRID, width=1)
     for i in range(1, rows):
         y = int(H * i / rows)
-        draw.line([(0, y), (W, y)], fill=GRID, width=1)
+        gdraw.line([(0, y), (W, y)], fill=GRID, width=1)
+    img.alpha_composite(grid_layer)
 
 
 def paste_logo(img: Image.Image, y: int = 80) -> int:
