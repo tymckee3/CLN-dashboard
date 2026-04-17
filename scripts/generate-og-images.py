@@ -85,23 +85,25 @@ def load_font(path, size):
 
 
 def draw_background(img: Image.Image):
-    """Matte-black panel with gold grid lines + radial glow behind the logo."""
+    """Matte-black panel with subtle gold grid + a warm glow behind the logo."""
     draw = ImageDraw.Draw(img, "RGBA")
 
-    # Soft gold radial glow centered roughly where the logo + headline sit.
+    # Big soft gold radial glow, brighter/bigger than before so the card feels
+    # lit up rather than flat. Roughly centered behind the logo + headline.
     glow = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     gdraw = ImageDraw.Draw(glow)
-    cx, cy = W // 2, H // 2 - 30
-    for r in range(420, 40, -40):
-        alpha = max(0, min(255, int(28 * (1 - r / 420))))
+    cx, cy = W // 2, 310
+    for r in range(520, 40, -24):
+        # Peak alpha ~44 near center, tapers to 0 at edge.
+        alpha = max(0, min(255, int(44 * (1 - r / 520))))
         gdraw.ellipse(
-            [cx - r, cy - r, cx + r, cy + r],
-            fill=(255, 190, 80, alpha),
+            [cx - r, cy - int(r * 0.72), cx + r, cy + int(r * 0.72)],
+            fill=(255, 195, 90, alpha),
         )
-    glow = glow.filter(ImageFilter.GaussianBlur(40))
+    glow = glow.filter(ImageFilter.GaussianBlur(50))
     img.alpha_composite(glow)
 
-    # Grid — evenly spaced vertical + horizontal lines.
+    # Grid — subtle, evenly spaced.
     cols, rows = 12, 7
     for i in range(1, cols):
         x = int(W * i / cols)
@@ -111,10 +113,10 @@ def draw_background(img: Image.Image):
         draw.line([(0, y), (W, y)], fill=GRID, width=1)
 
 
-def paste_logo(img: Image.Image) -> int:
+def paste_logo(img: Image.Image, y: int = 80) -> int:
     """Paste the affordable solar logo centered horizontally; return y-bottom."""
     if not LOGO.exists():
-        return 220
+        return y + 160
     logo = Image.open(LOGO).convert("RGBA")
     # Target width ~620px; preserve aspect ratio.
     target_w = 620
@@ -122,7 +124,6 @@ def paste_logo(img: Image.Image) -> int:
     target_h = int(logo.height * ratio)
     logo = logo.resize((target_w, target_h), Image.LANCZOS)
     x = (W - target_w) // 2
-    y = 70
     img.alpha_composite(logo, (x, y))
     return y + target_h
 
@@ -145,34 +146,39 @@ def fit_text(text: str, font_path: str, max_width: int, max_size: int, min_size:
 def draw_card(display_name: str, out_path: Path):
     img = Image.new("RGBA", (W, H), BG + (255,))
     draw_background(img)
-    logo_bottom = paste_logo(img)
+
+    # Logo sits a bit lower than center-of-top so there's breathing room on top.
+    logo_bottom = paste_logo(img, y=95)
 
     draw = ImageDraw.Draw(img)
 
-    # Big gold headline — auto-size to fit so "GLOBAL GIVE A BOOK" and "WESST"
-    # both look balanced.
+    # Big gold headline — auto-size to fit. Target size matches the original
+    # "COMMUNITY SOLAR" headline so WESST, WINGS FOR LIFE, and GLOBAL GIVE A
+    # BOOK all land at a similar visual weight.
     headline = display_name.upper()
-    head_font, head_w, _ = fit_text(headline, FONT_BOLD, max_width=980, max_size=82, min_size=44)
-    head_y = logo_bottom + 28
+    head_font, head_w, _ = fit_text(
+        headline, FONT_BOLD, max_width=1040, max_size=88, min_size=48,
+    )
+    head_y = logo_bottom + 34
     draw.text(((W - head_w) // 2, head_y), headline, fill=GOLD, font=head_font)
     head_h = head_font.getbbox(headline)[3] - head_font.getbbox(headline)[1]
 
-    # Subtitle — "Community Solar · Real-Time Dashboard"
-    sub_font = load_font(FONT_REGULAR, 34)
-    subtitle = "Community Solar  ·  Real-Time Dashboard"
+    # Subtitle — keep the original phrasing ("Real-Time Production Dashboard")
+    # so these cards read the same as the generic one Tyler liked.
+    sub_font = load_font(FONT_REGULAR, 36)
+    subtitle = "Real-Time Production Dashboard"
     sub_w = sub_font.getbbox(subtitle)[2] - sub_font.getbbox(subtitle)[0]
-    sub_y = head_y + head_h + 18
+    sub_y = head_y + head_h + 26
     draw.text(((W - sub_w) // 2, sub_y), subtitle, fill=WHITE, font=sub_font)
 
-    # Divider
-    divider_y = sub_y + 80
+    # Divider — short gold rule, same as original.
+    divider_y = sub_y + 78
     draw.line(
         [(W // 2 - 90, divider_y), (W // 2 + 90, divider_y)],
-        fill=GOLD + (140,) if False else GOLD,
-        width=2,
+        fill=GOLD, width=2,
     )
 
-    # Footer
+    # Footer — muted "AFFORDABLE SOLAR GROUP · NEW MEXICO"
     foot_font = load_font(FONT_BOLD, 22)
     footer = "AFFORDABLE SOLAR GROUP  ·  NEW MEXICO"
     foot_w = foot_font.getbbox(footer)[2] - foot_font.getbbox(footer)[0]
