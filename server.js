@@ -78,6 +78,29 @@ function escHtml(s) {
     .replace(/'/g, '&#39;');
 }
 
+// Slugify a site name the same way scripts/generate-og-images.py does so the
+// server picks the matching og-<slug>.png baked into the repo. Example:
+//   "Cuidando Los Niños Community Solar" -> "cuidando-los-ninos-community-solar"
+function slugify(s) {
+  return String(s)
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')  // strip accents
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+// Pick the per-site OG image if one exists; otherwise fall back to the generic
+// og.png. Resolved once at startup — all sites with a dedicated card are
+// checked in scripts/generate-og-images.py.
+const OG_IMAGE_FILE = (() => {
+  const slug = slugify(SITE_NAME);
+  const candidate = `og-${slug}.png`;
+  if (slug && fs.existsSync(path.join(PUBLIC, candidate))) {
+    return candidate;
+  }
+  return 'og.png';
+})();
+
 // Render the dashboard HTML with site config + per-site <title> and Open
 // Graph / Twitter Card meta tags injected. Unfurlers (iMessage, Slack,
 // Twitter, etc.) fetch this HTML server-side and don't run JS, so everything
@@ -100,7 +123,7 @@ function renderDashboard(req) {
   const description =
     `Live solar production for ${SITE_NAME} — current kW output, today's` +
     ` energy, 7-day history, and weather. ${SITE_SUBTITLE}`;
-  const ogImage = `${baseUrl}/og.png`;
+  const ogImage = `${baseUrl}/${OG_IMAGE_FILE}`;
 
   const t = escHtml(title);
   const d = escHtml(description);
@@ -545,6 +568,7 @@ app.listen(PORT, () => {
   console.log(`Scraper interval: ${SCRAPE_INTERVAL / 60000} min`);
   console.log(`Credentials: ${USERNAME ? 'set' : 'MISSING'}`);
   console.log(`Anthropic key: ${ANTHROPIC_API_KEY ? 'set' : 'not set (facts will use fallback)'}`);
+  console.log(`OG preview image: ${OG_IMAGE_FILE}${OG_IMAGE_FILE === 'og.png' ? ' (generic fallback)' : ''}`);
 
   scrape();
   setInterval(scrape, SCRAPE_INTERVAL);
