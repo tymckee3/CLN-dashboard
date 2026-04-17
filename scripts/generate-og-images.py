@@ -33,7 +33,7 @@ BG       = (3, 6, 9)          # matches dashboard --bg
 GOLD     = (245, 179, 65)     # matches dashboard --gold
 WHITE    = (237, 241, 255)    # matches dashboard --ink
 MUTED    = (140, 150, 170)
-GRID     = (255, 210, 120, 8)
+GRID     = (255, 210, 120, 28)
 
 # Fonts — DejaVu is present on most Linux distros (used by Pillow's default
 # install path). Fall back to PIL default if missing.
