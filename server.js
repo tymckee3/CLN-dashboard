@@ -68,13 +68,61 @@ try {
   console.error('Could not read index.html:', e.message);
 }
 
-// Render the dashboard HTML with site config injected before </head>.
-function renderDashboard() {
+// HTML-escape user-supplied strings before interpolating into tags/attrs.
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// Render the dashboard HTML with site config + per-site <title> and Open
+// Graph / Twitter Card meta tags injected. Unfurlers (iMessage, Slack,
+// Twitter, etc.) fetch this HTML server-side and don't run JS, so everything
+// they need has to be in the initial response.
+function renderDashboard(req) {
   if (!htmlTemplate) {
     return '<!doctype html><meta charset="utf-8"><title>Dashboard error</title>'
       + '<body style="font:16px sans-serif;padding:40px;background:#030609;color:#EDF1FF">'
       + 'Dashboard template unavailable — check server logs.</body>';
   }
+
+  // Build absolute base URL for og:url and og:image. Railway terminates TLS
+  // at the proxy so req.protocol reports 'http'; use x-forwarded-proto when
+  // present so og:url reflects the real https:// URL the client sees.
+  const host  = (req && req.headers && req.headers.host) || 'localhost';
+  const proto = (req && req.headers && req.headers['x-forwarded-proto']) || 'https';
+  const baseUrl = `${proto}://${host}`;
+
+  const title = `${SITE_NAME} · Solar Dashboard`;
+  const description =
+    `Live solar production for ${SITE_NAME} — current kW output, today's` +
+    ` energy, 7-day history, and weather. ${SITE_SUBTITLE}`;
+  const ogImage = `${baseUrl}/og.png`;
+
+  const t = escHtml(title);
+  const d = escHtml(description);
+  const u = escHtml(baseUrl + '/');
+  const i = escHtml(ogImage);
+
+  const metaBlock = `<title>${t}</title>
+<meta name="description" content="${d}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Affordable Solar Group">
+<meta property="og:title" content="${t}">
+<meta property="og:description" content="${d}">
+<meta property="og:url" content="${u}">
+<meta property="og:image" content="${i}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="${t}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="${t}">
+<meta name="twitter:description" content="${d}">
+<meta name="twitter:image" content="${i}">`;
+
   const configScript = `<script>
 window.__SITE_CONFIG__ = {
   name: ${JSON.stringify(SITE_NAME)},
@@ -87,13 +135,18 @@ window.__SITE_CONFIG__ = {
   timezone: ${JSON.stringify(TIMEZONE)}
 };
 </script>`;
-  return htmlTemplate.replace('</head>', configScript + '\n</head>');
+
+  // Replace the placeholder <title> in the template with the dynamic meta
+  // block (contains its own <title>), then inject the config script.
+  return htmlTemplate
+    .replace(/<title>[\s\S]*?<\/title>/, metaBlock)
+    .replace('</head>', configScript + '\n</head>');
 }
 
 // Dashboard entry points — must run BEFORE express.static so index.html is
 // never served raw (which would skip config injection).
-app.get(['/', '/index.html'], (_req, res) => {
-  res.type('html').send(renderDashboard());
+app.get(['/', '/index.html'], (req, res) => {
+  res.type('html').send(renderDashboard(req));
 });
 
 // Lightweight health check for Railway / uptime monitors.
@@ -105,8 +158,8 @@ app.get('/health', (_req, res) => {
 app.use(express.static(PUBLIC, { index: false }));
 
 // Anything that falls through gets the dashboard as a SPA-style fallback.
-app.get('*', (_req, res) => {
-  res.type('html').send(renderDashboard());
+app.get('*', (req, res) => {
+  res.type('html').send(renderDashboard(req));
 });
 
 // ═══════════════════════════════════════════════════════════════
