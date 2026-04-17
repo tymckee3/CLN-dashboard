@@ -306,6 +306,9 @@ function tick(){const n=new Date();$('clkEl').textContent=n.toLocaleTimeString('
 tick();setInterval(tick,1000);
 function parseTimeStr(s){if(!s)return null;const m=s.match(/(\d+):(\d+)\s*(AM|PM)/i);if(!m)return null;let h=parseInt(m[1]),mn=parseInt(m[2]);if(m[3].toUpperCase()==='PM'&&h!==12)h+=12;if(m[3].toUpperCase()==='AM'&&h===12)h=0;return h+mn/60;}
 let sunCache={rise:6.97,set:19.4,riseStr:'6:58 AM',setStr:'7:24 PM'};
+// Cached countdown digits — declared here (before updateSun) so updateSun can
+// reset it on day→night transitions to force a fresh flip animation.
+let prevCD={h0:'',h1:'',m0:'',m1:''};
 function updateSun(){
   const now=new Date(),nowH=now.getHours()+now.getMinutes()/60;
   const{rise,set,riseStr,setStr}=sunCache;
@@ -334,6 +337,11 @@ function updateSun(){
   // Start/stop interpolation timer on day/night transitions
   if(isNight&&!wasNight&&interpTimer){clearInterval(interpTimer);interpTimer=null;}
   if(!isNight&&wasNight)startInterpolation();
+  // On transition INTO night, reset countdown cache so digits re-render fresh.
+  if(isNight&&!wasNight)prevCD={h0:'',h1:'',m0:'',m1:''};
+  // Always refresh countdown when sun state updates — keeps HH:MM accurate
+  // regardless of sunCache load timing, night transitions, or throttled intervals.
+  if(typeof updateCountdown==='function')updateCountdown();
 }
 // Compensate for the arc SVG's preserveAspectRatio="none" stretching shapes
 // horizontally. We want the sun dots to render as visual circles (e.g. 3px or
@@ -726,18 +734,20 @@ fetchData=async function(){try{await _origFetchData();updateConnStatus(true);}ca
 fetchData();
 setInterval(fetchData,60*1000);setInterval(fetchWx,60*60*1000);
 
-// 7. Sunrise countdown — flip-clock style
-let prevCD={h0:'',h1:'',m0:'',m1:''};
+// 7. Sunrise countdown — flip-clock style.
+// prevCD is declared earlier (near sunCache) so updateSun() can reset it on
+// day→night transitions. Keeping the declaration above updateSun avoids a
+// temporal-dead-zone ReferenceError on the initial updateSun() call.
 function updateCountdown(){
   const now=new Date(),nowH=now.getHours()+now.getMinutes()/60+now.getSeconds()/3600;
-  const{rise}=sunCache;
+  let rise=sunCache&&sunCache.rise;
+  if(typeof rise!=='number'||!isFinite(rise))rise=6.5; // guard against NaN
   let diff=rise-nowH; // hours until sunrise
-  if(diff<0)diff+=24; // past sunset, sunrise is tomorrow
-  if(diff>18)diff=0; // safety: don't show 20h countdown during daytime
+  if(diff<=0)diff+=24; // past sunrise, next one is tomorrow
+  if(diff>18)diff=0;  // daytime — suppress (display is hidden anyway)
   const totalSec=Math.max(0,Math.floor(diff*3600));
   const h=Math.floor(totalSec/3600);
   const m=Math.floor((totalSec%3600)/60);
-  const s=totalSec%60;
   const digits={
     h0:String(Math.floor(h/10)),h1:String(h%10),
     m0:String(Math.floor(m/10)),m1:String(m%10)
@@ -753,7 +763,10 @@ function updateCountdown(){
     }
   }
 }
-setInterval(updateCountdown,60000);
+// 30s cadence keeps the minute digit visually responsive even if a tick is
+// throttled by the browser. updateSun (every 15s) also calls updateCountdown,
+// so the effective refresh rate on a healthy page is ~15s.
+setInterval(updateCountdown,30000);
 updateCountdown();
 
 // 8. Night screen stats
