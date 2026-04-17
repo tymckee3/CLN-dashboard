@@ -188,9 +188,12 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;back
      irradiance forecast chart (per design — keeps the essentials only). */
   .story-zone{display:none;}
   .btm{display:none;}
+  /* Both charts stack vertically on mobile: 7-day history on top,
+     irradiance forecast below. Each gets a fixed height so Chart.js
+     (responsive:true, maintainAspectRatio:false) has something to fill. */
   .charts{display:block;grid-template-columns:none;}
-  .charts>.cp{height:210px;margin-bottom:0;}
-  .charts>.cp+.cp{display:none;}
+  .charts>.cp{height:200px;margin-bottom:0;}
+  .charts>.cp+.cp{margin-top:10px;}
 
   /* Sun arc compact. */
   .arc-zone{padding:8px 0;}
