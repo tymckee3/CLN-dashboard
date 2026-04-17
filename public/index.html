@@ -136,6 +136,136 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;back
 @keyframes numBreathe{0%,100%{text-shadow:0 0 60px rgba(237,170,30,.55),0 1px 3px rgba(0,0,0,.6);}50%{text-shadow:0 0 110px rgba(237,170,30,.9),0 1px 3px rgba(0,0,0,.6);}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(5px);}to{opacity:1;transform:translateY(0);}}
 @keyframes arcGlow{0%,100%{filter:drop-shadow(0 0 6px #EDAA1E);}50%{filter:drop-shadow(0 0 16px #EDAA1E);}}
+
+/* ═══════════════ MOBILE / TABLET (≤900px) ═══════════════
+ * Collapses the 3-column kiosk layout to a single scrolling column.
+ * Desktop kiosk (≥1024px typical, 1920px for these installs) is untouched.
+ */
+@media (max-width:900px){
+  /* Release the kiosk viewport lock — phones need to scroll. */
+  html,body{overflow-y:auto;overflow-x:hidden;height:auto;min-height:100%;cursor:auto;-webkit-overflow-scrolling:touch;}
+  .root{height:auto;min-height:100vh;grid-template-rows:auto 1fr auto;padding:10px 14px 20px;gap:0;}
+
+  /* Header: wrap onto two rows so long site names don't get squeezed. */
+  .hdr{flex-wrap:wrap;gap:6px;padding-bottom:10px;}
+  .hdr-l{flex:1 1 100%;gap:10px;min-width:0;}
+  .hdr-r{flex:1 1 100%;justify-content:space-between;gap:8px;}
+  .sun-s{width:30px;height:30px;}
+  .h-name{font-size:1.3rem;letter-spacing:.05em;}
+  .h-sub{font-size:.64rem;letter-spacing:.1em;margin-top:2px;}
+  .clk-t{font-size:1.25rem;text-align:left;}
+  .clk-d{font-size:.62rem;text-align:left;}
+  .live{font-size:.68rem;gap:6px;}
+  .pip{width:8px;height:8px;}
+  .upd{font-size:.62rem;}
+
+  /* MAIN: single column, reorder so the hero is at top. */
+  .main{display:flex;flex-direction:column;gap:14px;padding-top:8px;}
+  .center{order:1;width:100%;gap:10px;}
+  .sc.sc-l{order:2;}
+  .sc.sc-r{order:3;}
+
+  /* Stats sidebars become 3-col strips with no vertical dividers. */
+  .sc{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;
+    border-right:none;border-left:none;padding:14px 0 0;
+    border-top:1px solid var(--border);}
+  .sc .si{margin-bottom:0;}
+  .sc .si-div{display:none;}
+  .si-lbl{font-size:.6rem;margin-bottom:3px;letter-spacing:.12em;}
+  .si-n{font-size:1.9rem;}
+  .si-u{font-size:.72rem;}
+  .si-s{font-size:.62rem;margin-top:3px;}
+
+  /* Hero ring: shrink to fit ~68% of viewport width. */
+  .hero-zone{padding-bottom:0;}
+  .ring-wrap{width:min(68vw,280px);height:min(68vw,280px);}
+  .r-kw{font-size:clamp(2.8rem,11vw,3.8rem);}
+  .r-unit{font-size:1.05rem;}
+  .r-cap{font-size:.76rem;}
+  .r-homes{font-size:.82rem;}
+
+  /* Mobile hides the rotating story card, solar-insight ticker, and the
+     irradiance forecast chart (per design — keeps the essentials only). */
+  .story-zone{display:none;}
+  .btm{display:none;}
+  .charts{display:block;grid-template-columns:none;}
+  .charts>.cp{height:210px;margin-bottom:0;}
+  .charts>.cp+.cp{display:none;}
+
+  /* Sun arc compact. */
+  .arc-zone{padding:8px 0;}
+  .arc-top{padding:0 6px 3px;}
+  .arc-lbl-t{font-size:.62rem;letter-spacing:.1em;}
+  .arc-lbl-v{font-size:.9rem;}
+  .arc-noon{font-size:.54rem;}
+  .arc-svg-wrap{height:38px;}
+
+  /* Weather strip + chart. */
+  .deep-zone{gap:10px;}
+  .wx-strip{padding:4px 0;}
+  .wx-val{font-size:1.5rem;}
+  .wx-lbl{font-size:.56rem;letter-spacing:.1em;margin-top:2px;}
+  .wx-note{font-size:.58rem;margin-top:2px;}
+  .wx-bar-wrap{width:72%;}
+  .cp{padding:10px 4px 6px;}
+  .cp-head{margin-bottom:4px;padding:0 6px;}
+  .cp-lbl{font-size:.66rem;letter-spacing:.12em;}
+  .cp-badge{font-size:.6rem;padding:2px 8px;}
+
+  /* Night mode: same full-screen vibe, scaled down for a phone. */
+  .night{gap:6px;padding:16px;}
+  .night>img{height:48px!important;margin-bottom:8px!important;}
+  .night>svg{width:40px!important;height:40px!important;}
+  .n-ttl{font-size:2.2rem;}
+  .n-sub{font-size:.85rem;letter-spacing:.12em;}
+  #nightStats{gap:20px!important;margin-top:18px!important;flex-wrap:wrap;justify-content:center;}
+  .n-stat-val{font-size:2rem;}
+  .n-stat-lbl{font-size:.65rem;}
+  .n-cd-msg{font-size:.85rem;margin-top:16px;letter-spacing:.14em;}
+  .n-countdown{margin-top:14px;gap:5px;}
+  .n-cd-card{width:60px;height:82px;border-radius:6px;}
+  .n-cd-num{font-size:3.6rem;}
+  .n-cd-sep{font-size:2.8rem;padding-bottom:12px;}
+  .n-cd-lbl{font-size:.62rem;letter-spacing:.16em;}
+  .n-sr{font-size:.56rem;margin-top:12px;}
+
+  /* Offline badge shrink. */
+  .offline-badge{top:8px;padding:4px 14px;}
+  .offline-badge .ob-txt{font-size:.66rem;letter-spacing:.14em;}
+}
+
+/* Landscape phones (short viewport, wide) — tighten night mode so the
+   countdown stays on-screen without scrolling. */
+@media (max-width:900px) and (max-height:500px) and (orientation:landscape){
+  .night{gap:4px;padding:8px;}
+  .night>img{height:32px!important;margin-bottom:2px!important;}
+  .night>svg{width:30px!important;height:30px!important;}
+  .n-ttl{font-size:1.5rem;}
+  .n-sub{font-size:.72rem;}
+  #nightStats{gap:14px!important;margin-top:6px!important;}
+  .n-stat-val{font-size:1.3rem;}
+  .n-stat-lbl{font-size:.55rem;}
+  .n-cd-msg{margin-top:8px;font-size:.74rem;}
+  .n-countdown{margin-top:4px;}
+  .n-cd-card{width:46px;height:62px;}
+  .n-cd-num{font-size:2.6rem;}
+  .n-cd-sep{font-size:2rem;padding-bottom:10px;}
+  .n-cd-lbl{font-size:.55rem;}
+  .n-sr{margin-top:4px;}
+  /* Hero a touch smaller in landscape so stats are reachable without
+     excessive scroll. */
+  .ring-wrap{width:min(40vh,220px);height:min(40vh,220px);}
+}
+
+/* Very narrow phones (iPhone SE class, ≤380px) — drop to 2-col stats. */
+@media (max-width:380px){
+  .sc{grid-template-columns:1fr 1fr;}
+  .si-n{font-size:1.7rem;}
+  .h-name{font-size:1.15rem;}
+  .ring-wrap{width:min(78vw,260px);height:min(78vw,260px);}
+  .r-kw{font-size:3rem;}
+  .wx-val{font-size:1.35rem;}
+}
 </style>
 </head>
 <body>
@@ -693,27 +823,36 @@ showInsight();setInterval(showInsight,18*1000);
 setInterval(fetchFacts,30*60*1000); // refresh facts every 30 min
 
 // ── KIOSK HARDENING ──────────────────────────────────────────
+// Kiosk-only behaviors. On mobile/touch these would hijack normal browsing
+// (fullscreen on every tap, blocked long-press menus, unrequested wake-lock),
+// so gate them off on small or coarse-pointer devices. Gate checked once at
+// load; no teardown needed because kiosks don't switch pointer types.
+const IS_KIOSK = window.matchMedia('(min-width: 901px)').matches &&
+                 !window.matchMedia('(pointer: coarse)').matches;
 
-// 1. Disable right-click context menu
-document.addEventListener('contextmenu',e=>e.preventDefault());
+if(IS_KIOSK){
+  // 1. Disable right-click context menu
+  document.addEventListener('contextmenu',e=>e.preventDefault());
 
-// 2. Fullscreen on tap — re-enters fullscreen after Esc
-document.addEventListener('click',()=>{
-  if(document.fullscreenElement||document.webkitFullscreenElement)return;
-  const el=document.documentElement;
-  if(el.requestFullscreen)el.requestFullscreen().catch(()=>{});
-  else if(el.webkitRequestFullscreen)el.webkitRequestFullscreen();
-});
+  // 2. Fullscreen on tap — re-enters fullscreen after Esc
+  document.addEventListener('click',()=>{
+    if(document.fullscreenElement||document.webkitFullscreenElement)return;
+    const el=document.documentElement;
+    if(el.requestFullscreen)el.requestFullscreen().catch(()=>{});
+    else if(el.webkitRequestFullscreen)el.webkitRequestFullscreen();
+  });
 
-// 3. Wake Lock API — keeps screen on without OS config
-let wakeLock=null;
-async function requestWake(){
-  try{if('wakeLock' in navigator){wakeLock=await navigator.wakeLock.request('screen');
-    wakeLock.addEventListener('release',()=>{setTimeout(requestWake,1000);});}}catch(e){}}
-requestWake();
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')requestWake();});
+  // 3. Wake Lock API — keeps screen on without OS config
+  let wakeLock=null;
+  async function requestWake(){
+    try{if('wakeLock' in navigator){wakeLock=await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release',()=>{setTimeout(requestWake,1000);});}}catch(e){}}
+  requestWake();
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')requestWake();});
+}
 
-// 4. Auto-reload every 30 min (picks up deploys + clears memory)
+// 4. Auto-reload every 30 min (picks up deploys + clears memory).
+//    Safe on both kiosk and phone — just a gentle page refresh.
 setTimeout(()=>location.reload(),30*60*1000);
 
 // 5. Connectivity watchdog — turns Live dot red on repeated failures
