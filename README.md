@@ -11,8 +11,8 @@ entirely through environment variables.
 |-------------------------------|--------------------|----------|---------|---------|--------------|--------------------|
 | Cuidando Los Niños (CLN)      | 72296              | 570224   | 4975    | 6499    | Belen        | CLN-dashboard      |
 | Central New Mexico (CNM)      | 72862              | 578792   | 4975    | 7979    | Belen        | CNMCC-dashboard    |
-| Locker 505                    | 72861              | 588711   | 5835    | 7003    | Rio Rancho   | L505-dashboard     |
-| Global Give a Book (GGAB)     | 72859              | 578835   | 7790    | 4975    | Los Lunas    | GGAB-dashboard     |
+| Locker 505                    | 72861              | 588711   | 4975    | 7003    | Rio Rancho   | L505-dashboard     |
+| Global Give a Book (GGAB)     | 72859              | 578835   | 4975    | 7685    | Los Lunas    | GGAB-dashboard     |
 | Wings for Life (WFL)          | 72858              | 596696   | 4975    | 7767    | Las Cruces   | WFL-dashboard      |
 | WESST                         | 72860              | 597714   | 4975    | 7462    | Roswell      | WESST-dashboard    |
 | Homewise                      | 74628              | 611259   | 4975    | 6947    | Rio Rancho   | Homewise-dashboard |
@@ -25,6 +25,14 @@ Its AC/DC come from the AlsoEnergy inverter nameplate (19 x 250 kW + 1 x 225 kW
 = 4,975 kW AC); DC is carried as 6,947 kW to match the figure Solscribe uses in
 anchor allocation and PRC disclosures, though the nameplate module config sums
 to 6,835 kW.
+
+`PV_SIZE_AC` is 4,975 kW at every site — the NM community-solar interconnect
+limit, confirmed against the AlsoEnergy inverter nameplate. GGAB and L505 were
+corrected 2026-08-31: GGAB had AC and DC transposed (`AC 7790 / DC 4975`), which
+made `server.js`'s `currentKW / PV_SIZE_AC` capacity readout ~36% low, and L505
+carried `AC 5835`. DC values track `db/migrations/113_anchor_deal_desk_settings.sql`
+in the solscribe repo, the same table anchor allocation and PRC disclosures use.
+Note WFL still shows 7767 here vs 7801 in that table — unverified, left alone.
 
 ## How it works
 
