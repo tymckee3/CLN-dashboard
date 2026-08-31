@@ -15,6 +15,16 @@ entirely through environment variables.
 | Global Give a Book (GGAB)     | 72859              | 578835   | 7790    | 4975    | Los Lunas    | GGAB-dashboard     |
 | Wings for Life (WFL)          | 72858              | 596696   | 4975    | 7767    | Las Cruces   | WFL-dashboard      |
 | WESST                         | 72860              | 597714   | 4975    | 7462    | Roswell      | WESST-dashboard    |
+| Homewise                      | 74628              | 611259   | 4975    | 6947    | Rio Rancho   | Homewise-dashboard |
+
+Homewise (SLO 2) energized in August 2026 and is still commissioning: all 20
+inverters report `Operating` and live kW is good, but the production meter has
+only intermittent history (first full day 2026-08-19). Expect the *Yesterday*
+and *7-Day History* panels to read zero until the meter uploads continuously.
+Its AC/DC come from the AlsoEnergy inverter nameplate (19 x 250 kW + 1 x 225 kW
+= 4,975 kW AC); DC is carried as 6,947 kW to match the figure Solscribe uses in
+anchor allocation and PRC disclosures, though the nameplate module config sums
+to 6,835 kW.
 
 ## How it works
 

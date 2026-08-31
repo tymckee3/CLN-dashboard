@@ -19,6 +19,7 @@ Run from anywhere:
 
 import os
 import re
+import sys
 import unicodedata
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
@@ -41,7 +42,17 @@ FONT_DIRS = [
     "/usr/share/fonts/truetype/dejavu",
     "/Library/Fonts",
     "/System/Library/Fonts",
+    os.path.expanduser("~/Library/Fonts"),
 ]
+
+# macOS ships no DejaVu. Rather than silently degrade to PIL's bitmap default
+# (which renders an unreadable card), pick up the copy matplotlib bundles if
+# it happens to be installed: `pip install matplotlib`.
+try:
+    import matplotlib
+    FONT_DIRS.append(os.path.join(matplotlib.get_data_path(), "fonts", "ttf"))
+except Exception:
+    pass
 
 def _find_font(*candidates):
     for d in FONT_DIRS:
@@ -64,6 +75,7 @@ SITES = [
     ("Global Give a Book Community Solar",   "GLOBAL GIVE A BOOK"),
     ("Wings for Life Community Solar",       "WINGS FOR LIFE"),
     ("WESST Community Solar",                "WESST"),
+    ("Homewise Community Solar",             "HOMEWISE"),
 ]
 
 
@@ -199,17 +211,29 @@ def draw_card(display_name: str, out_path: Path):
     print(f"  -> {out_path.relative_to(ROOT)}")
 
 
-def main():
-    if not FONT_BOLD:
-        print("WARN: DejaVuSans-Bold not found; falling back to PIL default font")
+def main(only=None):
+    # PIL's default font is a small bitmap face that ignores the requested size,
+    # so a fallback render silently overwrites every committed card with an
+    # unreadable one. Refuse instead of degrading.
+    if not FONT_BOLD or not FONT_REGULAR:
+        raise SystemExit(
+            "DejaVu fonts not found in any of:\n  "
+            + "\n  ".join(FONT_DIRS)
+            + "\nInstall them (macOS: `pip install matplotlib`, which bundles "
+              "DejaVuSans.ttf / DejaVuSans-Bold.ttf) and re-run.\n"
+              "Refusing to render with PIL's default bitmap font."
+        )
 
     # Generic fallback — used for any site without a specific image, or when
     # SITE_NAME is unset. Same layout, "COMMUNITY SOLAR" as the headline.
     print("Generating cards:")
-    draw_card("Community Solar", PUBLIC / "og.png")
+    if only is None:
+        draw_card("Community Solar", PUBLIC / "og.png")
 
     for site_name, display in SITES:
         slug = slugify(site_name)
+        if only and only not in slug:
+            continue
         out = PUBLIC / f"og-{slug}.png"
         draw_card(display, out)
         print(f"     ({site_name!r} -> slug {slug!r})")
@@ -218,4 +242,6 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # Optional slug filter: `generate-og-images.py homewise` regenerates just
+    # that card and leaves the other committed PNGs byte-identical.
+    main(only=(sys.argv[1].lower() if len(sys.argv) > 1 else None))
